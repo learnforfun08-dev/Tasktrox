@@ -1,0 +1,1324 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+
+    <!-- PWA: Manifest & Icons -->
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" sizes="192x192" href="icons/icon-192.png">
+    <link rel="apple-touch-icon" sizes="512x512" href="icons/icon-512.png">
+
+    <!-- PWA: Theme & mobile-web-app meta -->
+    <meta name="theme-color" content="#4f46e5">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="Tasktrox">
+    <meta name="description" content="Manage your tasks, track time, and journal your day — offline-first.">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Tasktrox</title>
+    <!-- Tailwind CSS for modern, rapid styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom Styles for JS toggled classes & Scrollbar */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+        body {
+            font-family: 'Inter', sans-serif;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* Filter button active state toggled by JS */
+        .filters button {
+            transition: all 0.2s ease;
+        }
+        .filters button.active {
+            background-color: #4f46e5 !important; /* text-indigo-600 */
+            color: white !important;
+            border-color: #4f46e5 !important;
+            box-shadow: 0 4px 6px -1px rgba(79, 70, 229, 0.2);
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+
+        /* Smooth fade in for dynamic content */
+        .fade-in {
+            animation: fadeIn 0.3s ease-out forwards;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(5px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Hide elements controlled by JS */
+        .hidden {
+            display: none !important;
+        }
+
+        /* Dotted pattern for landing page */
+        .bg-dots-pattern {
+            background-image: radial-gradient(#cbd5e1 2px, transparent 2px);
+            background-size: 20px 20px;
+        }
+
+        /* ========== PWA Install UI ========== */
+        #pwa-banner {
+            position: fixed; bottom: 0; left: 0; right: 0; z-index: 9999;
+            background: #fff;
+            border-radius: 24px 24px 0 0;
+            box-shadow: 0 -8px 40px rgba(0,0,0,0.14);
+            padding: 0;
+            transform: translateY(100%);
+            transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+            touch-action: pan-y;
+        }
+        #pwa-banner.visible { transform: translateY(0); }
+        #pwa-banner .drag-handle {
+            width: 40px; height: 5px; border-radius: 3px;
+            background: #e2e8f0; margin: 12px auto 0;
+        }
+        #pwa-banner-inner { padding: 20px 24px 32px; max-width: 480px; margin: 0 auto; }
+        #pwa-fab {
+            position: fixed; bottom: 24px; right: 20px; z-index: 9998;
+            width: 56px; height: 56px; border-radius: 50%;
+            background: linear-gradient(135deg, #4f46e5, #7c3aed);
+            color: #fff; border: none; cursor: pointer;
+            box-shadow: 0 6px 20px rgba(79,70,229,0.45);
+            display: flex; align-items: center; justify-content: center;
+            animation: pwa-bounce 2s infinite;
+            transition: opacity 0.3s, transform 0.2s;
+        }
+        #pwa-fab:hover { transform: scale(1.12); }
+        #pwa-fab.hidden-fab { opacity: 0; pointer-events: none; }
+        @keyframes pwa-bounce {
+            0%,100% { transform: translateY(0); }
+            50% { transform: translateY(-6px); }
+        }
+        #pwa-header-btn {
+            display: inline-flex; align-items: center; gap: 6px;
+            padding: 6px 12px; border-radius: 8px;
+            background: #eef2ff; color: #4f46e5;
+            border: 1px solid #c7d2fe; font-size: 12px; font-weight: 600;
+            cursor: pointer; transition: background 0.2s;
+        }
+        #pwa-header-btn:hover { background: #e0e7ff; }
+        #pwa-header-btn.hidden-btn { display: none; }
+        .pwa-chip {
+            display: inline-flex; align-items: center; gap: 4px;
+            font-size: 11px; font-weight: 600; padding: 4px 10px;
+            border-radius: 100px; background: #f1f5f9; color: #475569;
+        }
+        #pwa-install-btn {
+            width: 100%; padding: 14px; border-radius: 14px;
+            background: linear-gradient(135deg, #4f46e5, #7c3aed);
+            color: #fff; font-size: 16px; font-weight: 700;
+            border: none; cursor: pointer;
+            box-shadow: 0 8px 24px rgba(79,70,229,0.35);
+            transition: opacity 0.2s, transform 0.1s;
+        }
+        #pwa-install-btn:hover { opacity: 0.92; transform: scale(0.99); }
+        .ios-step {
+            display: flex; align-items: flex-start; gap: 12px;
+            padding: 10px 0; border-bottom: 1px solid #f1f5f9;
+        }
+        .ios-step:last-child { border-bottom: none; }
+        .ios-step-num {
+            width: 24px; height: 24px; border-radius: 50%;
+            background: #4f46e5; color: #fff;
+            font-size: 12px; font-weight: 700;
+            display: flex; align-items: center; justify-content: center;
+            flex-shrink: 0; margin-top: 1px;
+        }
+        #pwa-success-toast {
+            position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(80px);
+            background: #10b981; color: #fff;
+            padding: 12px 24px; border-radius: 12px;
+            font-size: 14px; font-weight: 600;
+            box-shadow: 0 6px 20px rgba(16,185,129,0.4);
+            z-index: 10000;
+            transition: transform 0.4s cubic-bezier(0.34,1.56,0.64,1);
+            white-space: nowrap;
+        }
+        #pwa-success-toast.show { transform: translateX(-50%) translateY(0); }
+
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 overflow-x-hidden">
+
+    <!-- Welcome Screen (Redesigned Landing Page) -->
+    <div id="welcomeScreen" class="min-h-screen bg-[#F8FAFC] flex flex-col relative transition-opacity duration-500 z-50 font-sans">
+        
+        <!-- Navigation -->
+        <nav class="w-full max-w-7xl mx-auto px-6 py-6 flex items-center justify-between z-20">
+            <div class="flex items-center gap-2 cursor-pointer">
+                <div class="w-8 h-8 rounded-full bg-[#FF7A45] flex items-center justify-center text-white font-bold text-lg leading-none">e</div>
+                <span class="font-extrabold text-xl tracking-tight text-slate-900">Tasktrox</span>
+            </div>
+            <div class="hidden lg:flex items-center gap-8 text-sm font-semibold text-slate-600">
+                <a href="#" class="hover:text-slate-900 transition-colors">Products</a>
+                <a href="#" class="hover:text-slate-900 transition-colors">Pricing</a>
+                <a href="#" class="hover:text-slate-900 transition-colors">Use Cases</a>
+                <a href="#" class="hover:text-slate-900 transition-colors">Location</a>
+                <a href="#" class="hover:text-slate-900 transition-colors">FAQ</a>
+                <a href="#" class="hover:text-slate-900 transition-colors">Company</a>
+            </div>
+            <div class="hidden md:flex items-center gap-6 text-sm font-semibold">
+                <a href="#" class="text-slate-600 hover:text-slate-900 transition-colors">Sign In</a>
+                <button class="px-6 py-2.5 bg-white text-slate-800 border border-slate-100 shadow-[0_4px_14px_0_rgba(0,0,0,0.05)] rounded-lg hover:shadow-[0_6px_20px_rgba(0,0,0,0.08)] hover:-translate-y-0.5 transition-all">Sign Up</button>
+            </div>
+        </nav>
+
+        <!-- Hero Content -->
+        <div class="flex-1 flex flex-col items-center pt-12 md:pt-16 px-4 z-20 relative">
+            <h1 class="text-5xl md:text-6xl lg:text-7xl font-extrabold text-slate-900 tracking-tight text-center mb-6">Manage Your Task.</h1>
+            <p class="max-w-2xl text-center text-slate-500 font-medium text-base md:text-lg mb-10 leading-relaxed px-4">
+                Encan boards, lists, and cards enable you to organize and prioritize your projects in a fun, flexible, and rewarding way. Let's started 🥳
+            </p>
+            <div class="flex flex-col sm:flex-row items-center gap-4">
+                <button onclick="startApp()" class="px-8 py-3.5 bg-[#FF7A45] text-white font-semibold rounded-xl shadow-[0_10px_25px_-5px_rgba(255,122,69,0.4)] hover:bg-[#E86634] hover:-translate-y-1 transition-all">
+                    Get Started
+                </button>
+                <button onclick="startApp()" class="px-8 py-3.5 bg-white text-slate-700 font-semibold rounded-xl shadow-[0_10px_25px_-5px_rgba(0,0,0,0.05)] border border-slate-100 hover:bg-slate-50 hover:-translate-y-1 transition-all flex items-center gap-2">
+                    <div class="w-5 h-5 rounded-full bg-orange-100 flex items-center justify-center">
+                        <svg class="w-3 h-3 text-[#FF7A45] ml-0.5" fill="currentColor" viewBox="0 0 20 20"><path d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd" fill-rule="evenodd"></path></svg>
+                    </div>
+                    Discover In Video
+                </button>
+            </div>
+        </div>
+
+        <!-- Dashboard Mockup Abstract Graphic -->
+        <div class="relative w-full max-w-5xl mx-auto mt-16 h-[400px] z-10 hidden md:block">
+            
+            <!-- Background Elements -->
+            <div class="absolute w-40 h-40 bg-[#FFCA58] rounded-full -left-12 -top-12 z-0"></div>
+            <div class="absolute w-40 h-40 bg-dots-pattern -right-10 -top-10 z-0 opacity-60"></div>
+            <div class="absolute w-4 h-4 bg-[#48C774] rounded-full left-[10%] top-[40%]"></div>
+            <div class="absolute w-8 h-8 bg-[#48C774] rounded-full right-[5%] bottom-[10%] z-30"></div>
+
+            <!-- Central Dashboard Window -->
+            <div class="absolute left-1/2 -translate-x-1/2 top-0 w-[800px] h-[450px] bg-white rounded-t-3xl shadow-[0_20px_50px_-10px_rgba(0,0,0,0.1)] border border-slate-100 z-10 p-6 flex gap-6 overflow-hidden">
+                
+                <!-- Main Mockup Left Col -->
+                <div class="w-2/3 flex flex-col gap-6">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="font-bold text-slate-800">Dashboard</p>
+                            <p class="text-[10px] text-slate-400 font-medium mt-0.5">Monday, 03 February 2026</p>
+                        </div>
+                    </div>
+                    <!-- Hero Banner inside mockup -->
+                    <div class="bg-[#FFF4ED] rounded-2xl p-6 relative overflow-hidden flex items-center">
+                        <div class="w-32 h-32 bg-indigo-100/50 rounded-2xl absolute -bottom-4 -left-4 rotate-12 flex items-center justify-center">
+                            <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix" alt="avatar shadow" class="w-16 h-16 opacity-50">
+                        </div>
+                        <div class="ml-24 relative z-10">
+                            <h3 class="font-bold text-slate-800 mb-1">Hi, Saepul Rohman</h3>
+                            <p class="text-[10px] text-slate-500 leading-relaxed font-medium">You have 4 tasks to finish all tasks today. Your already completed 50% tasks for today. Your progress is very good.</p>
+                        </div>
+                    </div>
+                    <!-- Activity row -->
+                    <div class="flex gap-4 h-32">
+                        <div class="flex-1 bg-white border border-slate-100 rounded-2xl p-4 shadow-sm flex flex-col justify-between">
+                            <p class="text-xs font-bold text-slate-800">Activity</p>
+                            <svg class="w-full h-12 text-[#48C774]" fill="none" viewBox="0 0 100 30" preserveAspectRatio="none" stroke="currentColor" stroke-width="2"><path d="M0 20 Q 10 5, 20 20 T 40 20 T 60 10 T 80 20 T 100 15" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                        </div>
+                        <div class="w-24 bg-[#48C774] rounded-2xl p-4 text-white flex flex-col items-center justify-center">
+                            <p class="text-[10px] opacity-90 mb-1 font-medium">Progress</p>
+                            <p class="text-2xl font-bold">60%</p>
+                        </div>
+                        <div class="w-24 flex flex-col gap-3">
+                            <div class="flex-1 bg-white border border-slate-100 shadow-sm rounded-xl p-3 flex flex-col justify-center">
+                                <p class="text-lg font-bold text-slate-800 leading-none">20+</p>
+                                <p class="text-[9px] text-slate-400 font-medium mt-1">Project</p>
+                            </div>
+                            <div class="flex-1 bg-white border border-slate-100 shadow-sm rounded-xl p-3 flex flex-col justify-center">
+                                <p class="text-lg font-bold text-slate-800 leading-none">50+</p>
+                                <p class="text-[9px] text-slate-400 font-medium mt-1">Client</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Main Mockup Right Col -->
+                <div class="w-1/3 flex flex-col gap-6 border-l border-slate-50 pl-6">
+                    <div>
+                        <div class="flex items-center justify-between mb-3">
+                            <p class="font-bold text-sm text-slate-800">My Profile</p>
+                            <svg class="w-4 h-4 text-slate-400 cursor-pointer" fill="currentColor" viewBox="0 0 20 20"><path d="M6 10a2 2 0 11-4 0 2 2 0 014 0zM12 10a2 2 0 11-4 0 2 2 0 014 0zM16 12a2 2 0 100-4 2 2 0 000 4z"></path></svg>
+                        </div>
+                        <div class="bg-white border border-slate-100 shadow-[0_4px_20px_-5px_rgba(0,0,0,0.05)] rounded-2xl p-4 flex flex-col items-center">
+                            <div class="w-16 h-16 rounded-full border-2 border-dashed border-[#48C774] p-1 mb-2">
+                                <div class="w-full h-full bg-indigo-50 rounded-full overflow-hidden">
+                                    <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix" alt="avatar" class="w-full h-full object-cover">
+                                </div>
+                            </div>
+                            <p class="font-bold text-sm text-slate-800">Saepul Rohman</p>
+                            <p class="text-[10px] text-slate-400 font-medium">UI Designer at Tropico</p>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="flex items-center justify-between mb-4">
+                            <p class="font-bold text-sm text-slate-800">Ongoing Task</p>
+                            <a href="#" class="text-[10px] text-[#48C774] font-bold hover:underline">View All</a>
+                        </div>
+                        <div class="space-y-4">
+                            <div class="flex items-center gap-3">
+                                <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Alex" class="w-8 h-8 rounded-full bg-orange-100 shadow-sm">
+                                <div>
+                                    <p class="text-xs font-bold text-slate-800 leading-tight">Call with Jonathan Ruslan</p>
+                                    <p class="text-[9px] text-slate-400 font-medium mt-0.5">Jan 20, 2026 • 9 AM - 11 AM</p>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-3">
+                                <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah" class="w-8 h-8 rounded-full bg-blue-100 shadow-sm">
+                                <div>
+                                    <p class="text-xs font-bold text-slate-800 leading-tight">Meet with Vlad Ermakov</p>
+                                    <p class="text-[9px] text-slate-400 font-medium mt-0.5">Jan 21, 2026 • 9 AM - 11 AM</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Floating Cards -->
+            <div class="absolute -left-16 top-20 w-48 bg-white/95 backdrop-blur-sm rounded-2xl shadow-[0_20px_40px_-15px_rgba(0,0,0,0.1)] p-4 border border-slate-100 z-20 flex flex-col gap-3 transition-transform hover:-translate-y-1">
+                <div class="w-10 h-10 rounded-xl bg-[#E8F8F0] flex items-center justify-center text-[#48C774]">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                </div>
+                <div>
+                    <p class="font-bold text-sm text-slate-800 leading-none mb-1">Landing Page</p>
+                    <p class="text-[11px] text-slate-400 font-medium">10 tasks</p>
+                </div>
+            </div>
+
+            <div class="absolute -left-4 bottom-10 w-52 bg-white/95 backdrop-blur-sm rounded-2xl shadow-[0_20px_40px_-15px_rgba(0,0,0,0.1)] p-4 border border-slate-100 z-20 transition-transform hover:-translate-y-1">
+                <p class="text-xs font-bold text-slate-800 mb-2">Workspace</p>
+                <div class="px-3 py-2 bg-slate-50 border border-slate-100 rounded-lg text-xs font-bold text-slate-600 mb-3 flex justify-between items-center cursor-pointer shadow-sm">
+                    Dadang.com
+                    <svg class="w-3 h-3 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                </div>
+                <div class="flex items-center gap-2">
+                    <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix" class="w-7 h-7 rounded-full bg-indigo-50 border border-slate-100">
+                    <div>
+                        <p class="text-[10px] font-bold text-slate-800 leading-none mb-0.5">Saepul Rohman</p>
+                        <p class="text-[8px] text-slate-400 font-medium"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="5122303421243d11353035303f367f323e3c">[email&#160;protected]</a></p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="absolute -right-16 top-48 w-40 bg-white/95 backdrop-blur-sm rounded-2xl shadow-[0_20px_40px_-15px_rgba(0,0,0,0.1)] p-5 border border-slate-100 z-20 flex flex-col items-center justify-center text-center transition-transform hover:-translate-y-1">
+                <div class="w-12 h-12 rounded-2xl bg-[#E8F8F0] flex items-center justify-center text-[#48C774] mb-3">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
+                </div>
+                <p class="font-bold text-sm text-slate-800 mb-0.5">Invitation</p>
+                <p class="text-[11px] text-slate-400 font-medium leading-tight">You have<br>6 invitations</p>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Main App Interface -->
+    <div id="appContainer" class="hidden min-h-screen flex flex-col">
+        <!-- Header -->
+        <header class="bg-white border-b border-slate-200 sticky top-0 z-10 shadow-sm">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                    <div class="p-1.5 bg-indigo-600 rounded-lg">
+                        <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                    </div>
+                    <h1 class="text-xl font-bold text-slate-800 tracking-tight">Advanced To-Do</h1>
+                </div>
+                <div class="flex items-center gap-4">
+                    <!-- Removed 'hidden sm:flex' to make buttons always visible -->
+                    <div class="flex items-center gap-2 bg-slate-100 p-1 rounded-lg">
+                        <button onclick="exportData()" class="text-xs font-medium text-slate-600 hover:text-indigo-600 hover:bg-white px-3 py-1.5 rounded-md transition-all flex items-center gap-1 shadow-sm">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                            Export
+                        </button>
+                        <label class="text-xs font-medium text-slate-600 hover:text-indigo-600 hover:bg-white px-3 py-1.5 rounded-md transition-all flex items-center gap-1 shadow-sm cursor-pointer mb-0">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+                            Import
+                            <input type="file" id="importFile" accept=".json" class="hidden" onchange="importData(event)">
+                        </label>
+                    </div>
+                    <!-- Hidden date on very small screens to save space -->
+                    <div class="text-sm font-medium text-slate-500 hidden sm:block" id="currentDateDisplay"></div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Layout Grid -->
+        <main class="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8">
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                
+                <!-- Left Sidebar: Daily Diary -->
+                <div class="lg:col-span-4 space-y-6 flex flex-col">
+                    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 flex-1 flex flex-col h-[calc(100vh-8rem)] sticky top-24">
+                        <div class="flex items-center gap-2 mb-6">
+                            <svg class="w-5 h-5 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
+                            <h2 class="text-lg font-bold text-slate-800">Daily Diary</h2>
+                        </div>
+                        
+                        <div class="flex gap-2 mb-6">
+                            <input type="text" id="diaryInput" placeholder="What's on your mind today?" class="flex-1 px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all outline-none">
+                            <button onclick="addDiaryEntry()" class="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-medium transition-colors shadow-sm">Post</button>
+                        </div>
+
+                        <div id="diaryEntries" class="flex-1 overflow-y-auto pr-2 space-y-3">
+                            <!-- Diary entries render here -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Main Area: Tasks -->
+                <div class="lg:col-span-8 space-y-6">
+                    
+                    <!-- Task Input Card -->
+                    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+                        <h2 class="text-lg font-bold text-slate-800 mb-4">Create New Task</h2>
+                        
+                        <div class="space-y-4">
+                            <!-- Primary Input -->
+                            <div>
+                                <input type="text" id="taskInput" placeholder="E.g., Complete project presentation..." class="w-full text-lg px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all outline-none placeholder:text-slate-400">
+                                <textarea id="taskDescInput" placeholder="Description (optional)..." rows="2" class="w-full mt-3 text-sm px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all outline-none placeholder:text-slate-400 resize-y"></textarea>
+                            </div>
+                            
+                            <!-- Secondary Inputs Grid -->
+                            <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
+                                <div class="relative">
+                                    <label class="block text-[10px] uppercase tracking-wider text-slate-500 font-semibold mb-1 ml-1">Due Date</label>
+                                    <input type="datetime-local" id="dueDateInput" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none text-slate-600">
+                                </div>
+                                <div class="relative">
+                                    <label class="block text-[10px] uppercase tracking-wider text-slate-500 font-semibold mb-1 ml-1">Target Hours</label>
+                                    <input type="number" id="targetHoursInput" placeholder="0.0" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+                                </div>
+                                <div class="relative">
+                                    <label class="block text-[10px] uppercase tracking-wider text-slate-500 font-semibold mb-1 ml-1">Priority</label>
+                                    <select id="prioritySelect" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none appearance-none cursor-pointer">
+                                        <option value="medium">Medium Priority</option>
+                                        <option value="low">Low Priority</option>
+                                        <option value="high">High Priority</option>
+                                    </select>
+                                </div>
+                                <div class="relative">
+                                    <label class="block text-[10px] uppercase tracking-wider text-slate-500 font-semibold mb-1 ml-1">Category</label>
+                                    <select id="categorySelect" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none appearance-none cursor-pointer">
+                                        <option value="general">General</option>
+                                        <option value="work">Work</option>
+                                        <option value="personal">Personal</option>
+                                        <option value="study">Study</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <!-- Recurrence Settings -->
+                            <div class="mt-2 pt-4 border-t border-slate-100">
+                                <div class="flex items-center gap-2 mb-3">
+                                    <input type="checkbox" id="isRecurringCheckbox" class="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer accent-indigo-600" onchange="toggleRecurrenceUI()">
+                                    <label for="isRecurringCheckbox" class="text-sm font-medium text-slate-700 cursor-pointer select-none">Make this a recurring task</label>
+                                </div>
+                                
+                                <div id="recurrenceOptions" class="hidden grid grid-cols-1 sm:grid-cols-2 gap-3 mb-2">
+                                    <div class="relative">
+                                        <label class="block text-[10px] uppercase tracking-wider text-slate-500 font-semibold mb-1 ml-1">Frequency</label>
+                                        <select id="recurFrequency" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none appearance-none cursor-pointer">
+                                            <option value="daily">Daily</option>
+                                            <option value="weekly">Weekly</option>
+                                            <option value="monthly">Monthly</option>
+                                        </select>
+                                    </div>
+                                    <div class="relative">
+                                        <label class="block text-[10px] uppercase tracking-wider text-slate-500 font-semibold mb-1 ml-1">Recur Until</label>
+                                        <input type="date" id="recurUntilDate" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none text-slate-600">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Inline Error Message -->
+                            <div id="taskError" class="hidden text-sm text-rose-500 font-medium flex items-center gap-1 mt-2">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                <span id="taskErrorText"></span>
+                            </div>
+                            
+                            <!-- Submit Button -->
+                            <div class="pt-2">
+                                <button onclick="addTask()" class="w-full sm:w-auto px-6 py-2.5 bg-slate-800 hover:bg-slate-900 text-white font-medium rounded-xl transition-colors shadow-sm flex items-center justify-center gap-2">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                                    Add Task
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Toolbar: Search & Filters -->
+                    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-4">
+                        <div class="flex flex-col md:flex-row gap-4">
+                            <!-- Search -->
+                            <div class="relative flex-1">
+                                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                    <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                                </div>
+                                <input type="text" id="searchInput" class="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="Search tasks..." oninput="filterTodos()">
+                            </div>
+                            
+                            <!-- Status Filters (Wrapped in JS required class 'filters') -->
+                            <div class="filters flex items-center gap-2 overflow-x-auto pb-1 md:pb-0 hide-scrollbar">
+                                <button id="filterAll" class="active px-4 py-2 bg-white border border-slate-200 text-slate-600 rounded-full text-sm font-medium hover:bg-slate-50 whitespace-nowrap" onclick="setFilter('all')">All</button>
+                                <button id="filterActive" class="px-4 py-2 bg-white border border-slate-200 text-slate-600 rounded-full text-sm font-medium hover:bg-slate-50 whitespace-nowrap" onclick="setFilter('active')">Active</button>
+                                <button id="filterCompleted" class="px-4 py-2 bg-white border border-slate-200 text-slate-600 rounded-full text-sm font-medium hover:bg-slate-50 whitespace-nowrap" onclick="setFilter('completed')">Completed</button>
+                            </div>
+                        </div>
+                        
+                        <!-- Dropdown Filters & Clear Actions -->
+                        <div class="mt-4 pt-4 border-t border-slate-100 flex flex-wrap items-center justify-between gap-4">
+                            <div class="flex items-center gap-3">
+                                <select id="categoryFilter" onchange="filterTodos()" class="px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-sm text-slate-600 focus:ring-2 focus:ring-indigo-500 outline-none cursor-pointer">
+                                    <option value="all">All Categories</option>
+                                    <option value="general">General</option>
+                                    <option value="work">Work</option>
+                                    <option value="personal">Personal</option>
+                                    <option value="study">Study</option>
+                                </select>
+                                <select id="priorityFilter" onchange="filterTodos()" class="px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-sm text-slate-600 focus:ring-2 focus:ring-indigo-500 outline-none cursor-pointer">
+                                    <option value="all">All Priorities</option>
+                                    <option value="low">Low</option>
+                                    <option value="medium">Medium</option>
+                                    <option value="high">High</option>
+                                </select>
+                            </div>
+                            <button onclick="clearCompleted()" class="text-sm font-medium text-red-500 hover:text-red-600 hover:bg-red-50 px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                                Clear Completed
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Todo List Container -->
+                    <div id="todoList" class="space-y-3 pb-10">
+                        <!-- Tasks render here -->
+                    </div>
+                    
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Edit Modal -->
+    <div id="editModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm transition-opacity">
+        <div class="bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden fade-in">
+            <div class="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+                <h3 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+                    <svg class="w-5 h-5 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                    Edit Task
+                </h3>
+                <button onclick="closeEditModal()" class="text-slate-400 hover:text-slate-600 transition-colors p-1 rounded-md hover:bg-slate-100">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+            <div class="p-6 space-y-4">
+                <div>
+                    <label class="block text-xs uppercase tracking-wider text-slate-500 font-semibold mb-1 ml-1">Task Name</label>
+                    <input type="text" id="editTaskName" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs uppercase tracking-wider text-slate-500 font-semibold mb-1 ml-1">Description</label>
+                    <textarea id="editTaskDesc" rows="3" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none resize-y"></textarea>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs uppercase tracking-wider text-slate-500 font-semibold mb-1 ml-1">Due Date</label>
+                        <input type="datetime-local" id="editDueDate" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs uppercase tracking-wider text-slate-500 font-semibold mb-1 ml-1">Target Hours</label>
+                        <input type="number" id="editTargetHours" step="0.1" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs uppercase tracking-wider text-slate-500 font-semibold mb-1 ml-1">Priority</label>
+                        <select id="editPriority" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none cursor-pointer">
+                            <option value="low">Low</option>
+                            <option value="medium">Medium</option>
+                            <option value="high">High</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs uppercase tracking-wider text-slate-500 font-semibold mb-1 ml-1">Category</label>
+                        <select id="editCategory" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none cursor-pointer">
+                            <option value="general">General</option>
+                            <option value="work">Work</option>
+                            <option value="personal">Personal</option>
+                            <option value="study">Study</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div class="px-6 py-4 border-t border-slate-100 flex justify-end gap-3 bg-slate-50/50">
+                <button onclick="closeEditModal()" class="px-5 py-2.5 text-sm font-medium text-slate-600 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 hover:text-slate-800 transition-colors shadow-sm">Cancel</button>
+                <button onclick="saveModalEdit()" class="px-5 py-2.5 text-sm font-medium text-white bg-indigo-600 rounded-xl hover:bg-indigo-700 transition-colors shadow-sm">Save Changes</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div id="toastContainer" class="fixed bottom-4 right-4 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+    <!-- Application Logic (Untouched functioning, updated template literals for Tailwind) -->
+    <script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
+        // Set Header Date
+        document.getElementById('currentDateDisplay').textContent = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
+
+        let todos = JSON.parse(localStorage.getItem('todos')) || [];
+        let diaryEntries = JSON.parse(localStorage.getItem('diary')) || [];
+        let currentFilter = 'all';
+        let editingId = null;
+
+        function startApp() {
+            document.getElementById('welcomeScreen').classList.add('hidden');
+            document.getElementById('appContainer').classList.remove('hidden');
+            renderTodos();
+            renderDiary();
+        }
+
+        function saveTodos() {
+            localStorage.setItem('todos', JSON.stringify(todos));
+        }
+
+        function saveDiary() {
+            localStorage.setItem('diary', JSON.stringify(diaryEntries));
+        }
+
+        function showToast(message, isError = false) {
+            const toast = document.createElement('div');
+            toast.className = `px-4 py-3 rounded-lg shadow-lg text-sm font-medium text-white fade-in pointer-events-auto ${isError ? 'bg-rose-500' : 'bg-emerald-500'}`;
+            toast.textContent = message;
+            document.getElementById('toastContainer').appendChild(toast);
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transition = 'opacity 0.3s ease';
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        function exportData() {
+            const data = {
+                todos: todos,
+                diary: diaryEntries,
+                exportDate: new Date().toISOString()
+            };
+            const dataStr = JSON.stringify(data, null, 2);
+            const blob = new Blob([dataStr], { type: "application/json" });
+            const url = URL.createObjectURL(blob);
+            
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `Advanced_ToDo_Backup_${new Date().toISOString().split('T')[0]}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            showToast("Data exported successfully!");
+        }
+
+        function importData(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const importedData = JSON.parse(e.target.result);
+                    if (importedData.todos && Array.isArray(importedData.todos)) {
+                        todos = importedData.todos;
+                        saveTodos();
+                    }
+                    if (importedData.diary && Array.isArray(importedData.diary)) {
+                        diaryEntries = importedData.diary;
+                        saveDiary();
+                    }
+                    renderTodos();
+                    renderDiary();
+                    showToast("Data imported successfully!");
+                } catch (error) {
+                    showToast("Error parsing JSON file. Please ensure it is a valid backup.", true);
+                }
+                event.target.value = ''; // reset file input
+            };
+            reader.readAsText(file);
+        }
+
+        function toggleRecurrenceUI() {
+            const isRecurring = document.getElementById('isRecurringCheckbox').checked;
+            const optionsDiv = document.getElementById('recurrenceOptions');
+            if (isRecurring) {
+                optionsDiv.classList.remove('hidden');
+                optionsDiv.classList.add('fade-in');
+            } else {
+                optionsDiv.classList.add('hidden');
+                optionsDiv.classList.remove('fade-in');
+            }
+        }
+
+        function showTaskError(msg) {
+            const errDiv = document.getElementById('taskError');
+            document.getElementById('taskErrorText').textContent = msg;
+            errDiv.classList.remove('hidden');
+        }
+
+        function clearTaskError() {
+            document.getElementById('taskError').classList.add('hidden');
+        }
+
+        function addTask() {
+            const taskInput = document.getElementById('taskInput');
+            const taskDescInput = document.getElementById('taskDescInput');
+            const dueDateInput = document.getElementById('dueDateInput');
+            const targetHoursInput = document.getElementById('targetHoursInput');
+            const prioritySelect = document.getElementById('prioritySelect');
+            const categorySelect = document.getElementById('categorySelect');
+            
+            // Recurrence inputs
+            const isRecurring = document.getElementById('isRecurringCheckbox').checked;
+            const recurFrequency = document.getElementById('recurFrequency').value;
+            const recurUntilDate = document.getElementById('recurUntilDate').value;
+
+            clearTaskError();
+
+            if (taskInput.value.trim() === '') {
+                showTaskError('Task name cannot be empty.');
+                return;
+            }
+
+            const createSingleTask = (dateStr, idOffset) => ({
+                id: Date.now() + idOffset,
+                text: taskInput.value.trim(),
+                description: taskDescInput.value.trim(),
+                completed: false,
+                dueDate: dateStr,
+                priority: prioritySelect.value,
+                category: categorySelect.value,
+                targetHours: targetHoursInput.value ? parseFloat(targetHoursInput.value) : null,
+                progress: 0
+            });
+
+            if (!isRecurring) {
+                todos.push(createSingleTask(dueDateInput.value, 0));
+            } else {
+                if (!dueDateInput.value || !recurUntilDate) {
+                    showTaskError('Please specify both a starting Due Date and a "Recur Until" date.');
+                    return;
+                }
+
+                let currentDate = new Date(dueDateInput.value);
+                const endDate = new Date(recurUntilDate);
+                
+                // Adjust end date to the end of the day to ensure inclusiveness
+                endDate.setHours(23, 59, 59, 999);
+
+                if (currentDate > endDate) {
+                    showTaskError('The "Recur Until" date must be after the starting due date.');
+                    return;
+                }
+
+                let idOffset = 0;
+                while (currentDate <= endDate) {
+                    // Reconstruct local date string (YYYY-MM-DDTHH:mm)
+                    const pad = n => n.toString().padStart(2, '0');
+                    const year = currentDate.getFullYear();
+                    const month = pad(currentDate.getMonth() + 1);
+                    const day = pad(currentDate.getDate());
+                    const hours = pad(currentDate.getHours());
+                    const mins = pad(currentDate.getMinutes());
+                    
+                    const dateString = `${year}-${month}-${day}T${hours}:${mins}`;
+                    
+                    todos.push(createSingleTask(dateString, idOffset++));
+
+                    // Increment the date based on frequency
+                    if (recurFrequency === 'daily') {
+                        currentDate.setDate(currentDate.getDate() + 1);
+                    } else if (recurFrequency === 'weekly') {
+                        currentDate.setDate(currentDate.getDate() + 7);
+                    } else if (recurFrequency === 'monthly') {
+                        currentDate.setMonth(currentDate.getMonth() + 1);
+                    }
+                }
+            }
+
+            saveTodos();
+
+            // Reset form
+            taskInput.value = '';
+            taskDescInput.value = '';
+            dueDateInput.value = '';
+            targetHoursInput.value = '';
+            prioritySelect.value = 'medium';
+            categorySelect.value = 'general';
+            
+            document.getElementById('isRecurringCheckbox').checked = false;
+            document.getElementById('recurUntilDate').value = '';
+            toggleRecurrenceUI();
+
+            renderTodos();
+        }
+
+        function toggleTodo(id) {
+            todos = todos.map(todo => 
+                todo.id === id ? { ...todo, completed: !todo.completed } : todo
+            );
+            saveTodos();
+            renderTodos();
+        }
+
+        function deleteTodo(id) {
+            todos = todos.filter(todo => todo.id !== id);
+            saveTodos();
+            renderTodos();
+        }
+
+        function openEditModal(id) {
+            editingId = id;
+            const todo = todos.find(t => t.id === id);
+            if (!todo) return;
+
+            document.getElementById('editTaskName').value = todo.text || '';
+            document.getElementById('editTaskDesc').value = todo.description || '';
+            document.getElementById('editDueDate').value = todo.dueDate || '';
+            document.getElementById('editTargetHours').value = todo.targetHours || '';
+            document.getElementById('editPriority').value = todo.priority || 'medium';
+            document.getElementById('editCategory').value = todo.category || 'general';
+
+            document.getElementById('editModal').classList.remove('hidden');
+        }
+
+        function closeEditModal() {
+            editingId = null;
+            document.getElementById('editModal').classList.add('hidden');
+        }
+
+        function saveModalEdit() {
+            if (!editingId) return;
+
+            const text = document.getElementById('editTaskName').value.trim();
+            if (!text) {
+                showToast('Task name cannot be empty.', true);
+                return;
+            }
+
+            todos = todos.map(todo => {
+                if (todo.id === editingId) {
+                    return {
+                        ...todo,
+                        text: text,
+                        description: document.getElementById('editTaskDesc').value.trim(),
+                        dueDate: document.getElementById('editDueDate').value,
+                        targetHours: document.getElementById('editTargetHours').value ? parseFloat(document.getElementById('editTargetHours').value) : null,
+                        priority: document.getElementById('editPriority').value,
+                        category: document.getElementById('editCategory').value,
+                    };
+                }
+                return todo;
+            });
+
+            saveTodos();
+            renderTodos();
+            closeEditModal();
+        }
+
+        function logProgress(id, hours) {
+            todos = todos.map(todo => {
+                if (todo.id === id) {
+                    return { ...todo, progress: (todo.progress || 0) + hours };
+                }
+                return todo;
+            });
+            saveTodos();
+            renderTodos();
+        }
+
+        function setFilter(filter) {
+            currentFilter = filter;
+            
+            // Update button states
+            document.querySelectorAll('.filters button').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            document.getElementById('filter' + filter.charAt(0).toUpperCase() + filter.slice(1)).classList.add('active');
+            
+            renderTodos();
+        }
+
+        function filterTodos() {
+            renderTodos();
+        }
+
+        function clearCompleted() {
+            todos = todos.filter(todo => !todo.completed);
+            saveTodos();
+            renderTodos();
+        }
+
+        function getFilteredTodos() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            const categoryFilter = document.getElementById('categoryFilter').value;
+            const priorityFilter = document.getElementById('priorityFilter').value;
+
+            return todos.filter(todo => {
+                const matchesFilter = currentFilter === 'all' || 
+                    (currentFilter === 'completed' && todo.completed) ||
+                    (currentFilter === 'active' && !todo.completed);
+                
+                const matchesSearch = todo.text.toLowerCase().includes(searchTerm);
+                const matchesCategory = categoryFilter === 'all' || todo.category === categoryFilter;
+                const matchesPriority = priorityFilter === 'all' || todo.priority === priorityFilter;
+
+                return matchesFilter && matchesSearch && matchesCategory && matchesPriority;
+            });
+        }
+
+        function renderTodos() {
+            const todoList = document.getElementById('todoList');
+            const filteredTodos = getFilteredTodos();
+
+            if (filteredTodos.length === 0) {
+                todoList.innerHTML = `
+                    <div class="text-center py-10 bg-white rounded-2xl border border-slate-200 border-dashed fade-in">
+                        <svg class="w-12 h-12 text-slate-300 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path></svg>
+                        <p class="text-slate-500 font-medium">No tasks found matching your criteria.</p>
+                    </div>`;
+                return;
+            }
+
+            // Categorize tasks into Today and Upcoming
+            const now = new Date();
+            const tomorrowStart = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+
+            const todayTodos = [];
+            const upcomingTodos = [];
+
+            filteredTodos.forEach(todo => {
+                if (!todo.dueDate) {
+                    upcomingTodos.push(todo);
+                } else {
+                    const taskDate = new Date(todo.dueDate);
+                    if (taskDate < tomorrowStart) {
+                        todayTodos.push(todo); // Due today or overdue
+                    } else {
+                        upcomingTodos.push(todo); // Due tomorrow or later
+                    }
+                }
+            });
+
+            // Reusable HTML generator for individual tasks
+            const createTodoHTML = (todo) => {
+                const dateObj = todo.dueDate ? new Date(todo.dueDate) : null;
+                const dueDateString = dateObj ? dateObj.toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : 'No due date';
+                const progressPercent = todo.targetHours ? (todo.progress / todo.targetHours) * 100 : 0;
+                
+                const colorMap = {
+                    high: { border: 'border-rose-500', badge: 'bg-rose-100 text-rose-700', bgHover: 'hover:border-rose-300' },
+                    medium: { border: 'border-amber-400', badge: 'bg-amber-100 text-amber-700', bgHover: 'hover:border-amber-300' },
+                    low: { border: 'border-emerald-400', badge: 'bg-emerald-100 text-emerald-700', bgHover: 'hover:border-emerald-300' }
+                };
+                const theme = colorMap[todo.priority] || colorMap.medium;
+
+                return `
+                    <div class="group bg-white rounded-2xl shadow-sm border border-slate-200 border-l-[6px] ${theme.border} ${theme.bgHover} transition-all duration-200 fade-in">
+                        <div class="p-4 sm:p-5">
+                            
+                            <!-- Header Row: Checkbox, Text, Actions -->
+                            <div class="flex items-start justify-between gap-3 sm:gap-4">
+                                <div class="flex items-start gap-3 flex-1 min-w-0">
+                                    <div class="pt-1 flex-shrink-0">
+                                        <input type="checkbox" class="w-5 h-5 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer accent-indigo-600" 
+                                               ${todo.completed ? 'checked' : ''} 
+                                               onchange="toggleTodo(${todo.id})">
+                                    </div>
+                                    <div class="flex-1 min-w-0">
+                                        <h3 class="text-base sm:text-lg font-medium truncate ${todo.completed ? 'line-through text-slate-400' : 'text-slate-800'}">${todo.text}</h3>
+                                        ${todo.description ? `<p class="text-sm text-slate-500 mt-1 mb-2 line-clamp-2">${todo.description}</p>` : ''}
+                                        
+                                        <!-- Meta tags -->
+                                        <div class="flex flex-wrap items-center gap-2 mt-2 text-xs font-medium">
+                                            ${todo.dueDate ? `
+                                                <span class="flex items-center gap-1 text-slate-500 bg-slate-100 px-2 py-1 rounded-md">
+                                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                                                    ${dueDateString}
+                                                </span>
+                                            ` : ''}
+                                            <span class="px-2 py-1 bg-slate-100 text-slate-600 rounded-md uppercase tracking-wider text-[10px] flex items-center gap-1">
+                                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"></path></svg>
+                                                ${todo.category}
+                                            </span>
+                                            <span class="px-2 py-1 rounded-md uppercase tracking-wider text-[10px] ${theme.badge}">
+                                                ${todo.priority}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Actions -->
+                                <div class="flex items-center gap-1 flex-shrink-0 opacity-100 lg:opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <button onclick="openEditModal(${todo.id})" class="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors" title="Edit">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
+                                    </button>
+                                    <button onclick="deleteTodo(${todo.id})" class="p-2 text-rose-500 hover:bg-rose-50 rounded-lg transition-colors" title="Delete">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Progress Section -->
+                            ${todo.targetHours ? `
+                                <div class="mt-4 pt-4 border-t border-slate-100">
+                                    <div class="flex justify-between items-center text-xs font-semibold text-slate-500 mb-2 uppercase tracking-wider">
+                                        <span>Time Tracked</span>
+                                        <span class="text-slate-700">${(todo.progress || 0).toFixed(1)} / ${todo.targetHours} hrs</span>
+                                    </div>
+                                    <div class="w-full bg-slate-100 rounded-full h-2.5 mb-3 overflow-hidden">
+                                        <div class="bg-indigo-500 h-2.5 rounded-full transition-all duration-500 ease-out" style="width: ${Math.min(progressPercent, 100)}%"></div>
+                                    </div>
+                                    <div class="flex items-center gap-2">
+                                        <input type="number" id="hours-${todo.id}" step="0.1" min="0" placeholder="Add hrs" class="w-24 px-3 py-1.5 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none">
+                                        <button onclick="logHours(${todo.id})" class="px-4 py-1.5 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 font-medium rounded-lg text-sm transition-colors flex items-center gap-1">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                            Log
+                                        </button>
+                                    </div>
+                                </div>
+                            ` : ''}
+                        </div>
+                    </div>
+                `;
+            };
+
+            let finalHTML = '';
+
+            // 1. Today's Tasks Section
+            finalHTML += `
+                <h3 class="text-lg font-bold text-slate-800 mb-3 mt-2 flex items-center gap-2">
+                    <svg class="w-5 h-5 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    Today's Tasks
+                </h3>
+            `;
+            if (todayTodos.length > 0) {
+                finalHTML += `<div class="space-y-3">${todayTodos.map(createTodoHTML).join('')}</div>`;
+            } else {
+                finalHTML += `<div class="text-sm text-slate-500 italic py-3 px-4 bg-slate-50 rounded-xl border border-slate-100">No tasks scheduled for today. You're all caught up!</div>`;
+            }
+
+            // 2. Upcoming Tasks Dropdown
+            if (upcomingTodos.length > 0) {
+                finalHTML += `
+                <details class="group mt-6 bg-slate-50 rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
+                    <summary class="flex items-center justify-between cursor-pointer list-none p-4 font-medium text-slate-700 hover:bg-slate-100 transition-colors [&::-webkit-details-marker]:hidden">
+                        <span class="flex items-center gap-2">
+                            <svg class="w-5 h-5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                            Upcoming Tasks 
+                            <span class="bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full text-xs font-bold">${upcomingTodos.length}</span>
+                        </span>
+                        <span class="transition-transform duration-300 group-open:-rotate-180">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                        </span>
+                    </summary>
+                    <div class="p-4 pt-2 border-t border-slate-200 space-y-3 bg-white/50">
+                        ${upcomingTodos.map(createTodoHTML).join('')}
+                    </div>
+                </details>
+                `;
+            }
+
+            todoList.innerHTML = finalHTML;
+        }
+
+        function logHours(id) {
+            const input = document.getElementById(`hours-${id}`);
+            const hours = parseFloat(input.value);
+            if (hours > 0) {
+                logProgress(id, hours);
+                input.value = '';
+            }
+        }
+
+        function addDiaryEntry() {
+            const input = document.getElementById('diaryInput');
+            if (input.value.trim() === '') return;
+
+            diaryEntries.push({
+                id: Date.now(),
+                text: input.value.trim(),
+                date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
+            });
+
+            saveDiary();
+            input.value = '';
+            renderDiary();
+        }
+
+        function renderDiary() {
+            const diaryContainer = document.getElementById('diaryEntries');
+            
+            if (diaryEntries.length === 0) {
+                diaryContainer.innerHTML = `<div class="text-sm text-slate-400 text-center mt-4 italic">No entries yet. Start writing!</div>`;
+                return;
+            }
+
+            diaryContainer.innerHTML = diaryEntries.slice(-10).reverse().map(entry => 
+                `<div class="p-4 bg-slate-50 border border-slate-100 rounded-xl text-sm text-slate-700 relative group fade-in hover:shadow-sm transition-shadow">
+                    <p class="pr-2 leading-relaxed whitespace-pre-wrap">${entry.text}</p>
+                    <div class="mt-2 text-[10px] text-slate-400 font-medium flex items-center gap-1">
+                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        ${entry.date}
+                    </div>
+                </div>`
+            ).join('');
+        }
+
+        // Event listeners
+        document.getElementById('taskInput').addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') addTask();
+        });
+
+        document.getElementById('diaryInput').addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') addDiaryEntry();
+        });
+        // Initialize app
+        if (todos.length > 0) {
+            startApp();
+        }
+    </script>
+
+    <!-- ========== PWA Install Banner ========== -->
+    <div id="pwa-banner" role="dialog" aria-label="Install Tasktrox app">
+        <div class="drag-handle"></div>
+        <div id="pwa-banner-inner">
+            <div style="display:flex;align-items:center;gap:14px;margin-bottom:16px;">
+                <img src="icons/icon-192.png" alt="Tasktrox" style="width:52px;height:52px;border-radius:14px;box-shadow:0 4px 12px rgba(79,70,229,0.2);">
+                <div>
+                    <div style="font-size:18px;font-weight:800;color:#1e293b;line-height:1.2;">Tasktrox</div>
+                    <div style="font-size:12px;color:#64748b;font-weight:500;margin-top:2px;">Task Manager &amp; Daily Diary</div>
+                </div>
+                <button onclick="closePwaBanner()" aria-label="Close" style="margin-left:auto;background:none;border:none;color:#94a3b8;cursor:pointer;font-size:20px;line-height:1;padding:4px;">&#10005;</button>
+            </div>
+
+            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px;">
+                <span class="pwa-chip">✅ Works Offline</span>
+                <span class="pwa-chip">⚡ Instant Open</span>
+                <span class="pwa-chip">🖥️ No Browser Bar</span>
+            </div>
+
+            <!-- Android / Desktop CTA -->
+            <div id="pwa-android-section">
+                <button id="pwa-install-btn" onclick="triggerNativeInstall()">
+                    Install App — It's Free
+                </button>
+                <p style="text-align:center;font-size:11px;color:#94a3b8;margin-top:8px;">Works on Android &amp; desktop Chrome/Edge</p>
+            </div>
+
+            <!-- iOS Instructions -->
+            <div id="pwa-ios-section" style="display:none;">
+                <p style="font-size:13px;font-weight:700;color:#1e293b;margin-bottom:12px;">Add to Home Screen (iOS)</p>
+                <div class="ios-step">
+                    <div class="ios-step-num">1</div>
+                    <div style="font-size:13px;color:#475569;">Tap the <strong>Share</strong> button (<svg style="display:inline;vertical-align:middle;width:14px;height:14px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8M16 6l-4-4-4 4M12 2v13"/></svg>) in Safari's toolbar</div>
+                </div>
+                <div class="ios-step">
+                    <div class="ios-step-num">2</div>
+                    <div style="font-size:13px;color:#475569;">Scroll down and tap <strong>"Add to Home Screen"</strong></div>
+                </div>
+                <div class="ios-step">
+                    <div class="ios-step-num">3</div>
+                    <div style="font-size:13px;color:#475569;">Tap <strong>"Add"</strong> in the top-right corner</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Floating Install FAB -->
+    <button id="pwa-fab" onclick="openPwaBanner()" aria-label="Install app" title="Install Tasktrox">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <path d="M12 2v13M8 11l4 4 4-4M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2"/>
+        </svg>
+    </button>
+
+    <!-- Success toast -->
+    <div id="pwa-success-toast">🎉 Tasktrox installed successfully!</div>
+
+    <!-- ========== PWA Logic ========== -->
+    <script>
+    (function() {
+        'use strict';
+
+        // --- Platform detection ---
+        const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+        const isStandalone = window.matchMedia('(display-mode: standalone)').matches
+                          || window.navigator.standalone === true;
+
+        let deferredPrompt = null;
+        let bannerShown = false;
+        let swipeStartY = 0;
+
+        // If already installed (standalone), hide all install UI
+        if (isStandalone) {
+            hideAllInstallUI();
+        }
+
+        // Listen for native install prompt (Android/Desktop)
+        window.addEventListener('beforeinstallprompt', function(e) {
+            e.preventDefault();
+            deferredPrompt = e;
+            showInstallUI();
+        });
+
+        // After install
+        window.addEventListener('appinstalled', function() {
+            showSuccessToast();
+            hideAllInstallUI();
+        });
+
+        // Auto-show banner after 2 seconds (only if not standalone)
+        if (!isStandalone) {
+            setTimeout(function() {
+                if (!bannerShown) openPwaBanner();
+            }, 2000);
+        }
+
+        // Add install button to header when app container is shown
+        document.addEventListener('DOMContentLoaded', function() {
+            injectHeaderBtn();
+        });
+
+        // --- Public functions ---
+        window.openPwaBanner = function() {
+            const banner = document.getElementById('pwa-banner');
+            if (!banner) return;
+            bannerShown = true;
+
+            // Show correct section
+            const iosSection = document.getElementById('pwa-ios-section');
+            const androidSection = document.getElementById('pwa-android-section');
+
+            if (isIOS) {
+                if (iosSection) iosSection.style.display = 'block';
+                if (androidSection) androidSection.style.display = 'none';
+            } else {
+                if (iosSection) iosSection.style.display = 'none';
+                if (androidSection) androidSection.style.display = 'block';
+            }
+
+            banner.classList.add('visible');
+            const fab = document.getElementById('pwa-fab');
+            if (fab) fab.classList.add('hidden-fab');
+        };
+
+        window.closePwaBanner = function() {
+            const banner = document.getElementById('pwa-banner');
+            if (banner) banner.classList.remove('visible');
+            const fab = document.getElementById('pwa-fab');
+            if (fab) fab.classList.remove('hidden-fab');
+        };
+
+        window.triggerNativeInstall = function() {
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                deferredPrompt.userChoice.then(function(result) {
+                    if (result.outcome === 'accepted') {
+                        showSuccessToast();
+                        hideAllInstallUI();
+                    }
+                    deferredPrompt = null;
+                });
+            }
+            closePwaBanner();
+        };
+
+        function hideAllInstallUI() {
+            const banner = document.getElementById('pwa-banner');
+            const fab = document.getElementById('pwa-fab');
+            const headerBtn = document.getElementById('pwa-header-btn');
+            if (banner) banner.style.display = 'none';
+            if (fab) { fab.style.display = 'none'; }
+            if (headerBtn) headerBtn.classList.add('hidden-btn');
+        }
+
+        function showInstallUI() {
+            const fab = document.getElementById('pwa-fab');
+            if (fab) fab.classList.remove('hidden-fab');
+        }
+
+        function showSuccessToast() {
+            const toast = document.getElementById('pwa-success-toast');
+            if (!toast) return;
+            toast.classList.add('show');
+            setTimeout(function() { toast.classList.remove('show'); }, 4000);
+        }
+
+        function injectHeaderBtn() {
+            if (isStandalone) return;
+            const headerActions = document.querySelector('header .flex.items-center.gap-4');
+            if (!headerActions) return;
+            const btn = document.createElement('button');
+            btn.id = 'pwa-header-btn';
+            btn.title = 'Install Tasktrox';
+            btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2v13M8 11l4 4 4-4M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2"/></svg> Install';
+            btn.onclick = openPwaBanner;
+            headerActions.insertBefore(btn, headerActions.firstChild);
+        }
+
+        // --- Swipe-down to dismiss ---
+        const banner = document.getElementById('pwa-banner');
+        if (banner) {
+            banner.addEventListener('touchstart', function(e) {
+                swipeStartY = e.touches[0].clientY;
+            }, { passive: true });
+
+            banner.addEventListener('touchend', function(e) {
+                const dy = e.changedTouches[0].clientY - swipeStartY;
+                if (dy > 60) closePwaBanner();
+            }, { passive: true });
+        }
+
+        // --- Service Worker registration ---
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function() {
+                navigator.serviceWorker.register('./sw.js')
+                    .then(function(reg) {
+                        console.log('[PWA] SW registered, scope:', reg.scope);
+
+                        // Prompt for reload when new SW waiting
+                        reg.addEventListener('updatefound', function() {
+                            const newWorker = reg.installing;
+                            if (!newWorker) return;
+                            newWorker.addEventListener('statechange', function() {
+                                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                                    console.log('[PWA] New version available. Reload to update.');
+                                }
+                            });
+                        });
+                    })
+                    .catch(function(err) {
+                        console.warn('[PWA] SW registration failed:', err);
+                    });
+            });
+        }
+    })();
+    </script>
+
+</body>
+</html>
