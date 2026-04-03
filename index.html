@@ -1,0 +1,1808 @@
+<!DOCTYPE html>
+<html lang="en" class="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>ActivityFlow v4.1</title>
+
+    <!-- PWA Meta -->
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="ActivityFlow">
+    <meta name="theme-color" content="#4f46e5">
+    <meta name="description" content="Log, track and analyse your daily activities with timers, boards and analytics.">
+
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="./manifest.json">
+
+    <!-- Apple Touch Icon -->
+    <link rel="apple-touch-icon" sizes="192x192" href="./icons/icon-192.png">
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Vue 3 -->
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <!-- Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['"Plus Jakarta Sans"', 'sans-serif'] },
+                    colors: {
+                        background: 'var(--bg-color)',
+                        surface: 'var(--surface-color)',
+                        border: 'var(--border-color)',
+                    }
+                }
+            },
+            safelist: [
+                'bg-indigo-600', 'bg-indigo-500', 'text-indigo-600', 'text-indigo-500', 'ring-indigo-500', 'border-indigo-500', 'bg-indigo-50', 'bg-indigo-100', 'shadow-indigo-500/20', 'shadow-indigo-500/30', 'focus:ring-indigo-500',
+                'bg-rose-600', 'bg-rose-500', 'text-rose-600', 'text-rose-500', 'ring-rose-500', 'border-rose-500', 'bg-rose-50', 'bg-rose-100', 'shadow-rose-500/20', 'shadow-rose-500/30', 'focus:ring-rose-500',
+                'bg-emerald-600', 'bg-emerald-500', 'text-emerald-600', 'text-emerald-500', 'ring-emerald-500', 'border-emerald-500', 'bg-emerald-50', 'bg-emerald-100', 'shadow-emerald-500/20', 'shadow-emerald-500/30', 'focus:ring-emerald-500',
+                'bg-amber-600', 'bg-amber-500', 'text-amber-600', 'text-amber-500', 'ring-amber-500', 'border-amber-500', 'bg-amber-50', 'bg-amber-100', 'shadow-amber-500/20', 'shadow-amber-500/30', 'focus:ring-amber-500',
+                'bg-violet-600', 'bg-violet-500', 'text-violet-600', 'text-violet-500', 'ring-violet-500', 'border-violet-500', 'bg-violet-50', 'bg-violet-100', 'shadow-violet-500/20', 'shadow-violet-500/30', 'focus:ring-violet-500',
+            ]
+        }
+    </script>
+
+    <style>
+        :root { --bg-color: #f8fafc; --surface-color: #ffffff; --border-color: #e2e8f0; }
+        html.dark { --bg-color: #0f172a; --surface-color: #1e293b; --border-color: #334155; }
+
+        .glass-panel { background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(12px); }
+        html.dark .glass-panel { background: rgba(30, 41, 59, 0.85); }
+        
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; height: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        html.dark .custom-scrollbar::-webkit-scrollbar-thumb { background: #475569; }
+
+        .slide-up-enter-active, .slide-up-leave-active { transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); }
+        .slide-up-enter-from, .slide-up-leave-to { transform: translateY(20px) scale(0.95); opacity: 0; }
+
+        .timer-glow { animation: pulse-glow 2s infinite; }
+        @keyframes pulse-glow {
+            0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
+            70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+        }
+
+        /* ===== MOBILE IMPROVEMENTS ===== */
+
+        /* Prevent text size adjustments on iOS */
+        html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+
+        /* Smooth scrolling & touch */
+        * { -webkit-tap-highlight-color: transparent; }
+        .touch-scroll { -webkit-overflow-scrolling: touch; overscroll-behavior: contain; }
+
+        /* Modal bottom-sheet on mobile */
+        @media (max-width: 640px) {
+            .modal-sheet {
+                position: fixed !important;
+                bottom: 0 !important;
+                left: 0 !important;
+                right: 0 !important;
+                top: auto !important;
+                transform: none !important;
+                border-radius: 1.5rem 1.5rem 0 0 !important;
+                max-width: 100% !important;
+                width: 100% !important;
+                max-height: 92vh !important;
+                overflow-y: auto !important;
+            }
+            .modal-sheet::before {
+                content: '';
+                display: block;
+                width: 40px;
+                height: 4px;
+                background: #cbd5e1;
+                border-radius: 99px;
+                margin: 12px auto 0;
+            }
+        }
+
+        /* Floating timer — smaller and repositioned on mobile */
+        @media (max-width: 640px) {
+            .timer-widget-wrap {
+                bottom: 4.5rem !important;
+                right: 0.75rem !important;
+            }
+            .timer-panel {
+                width: calc(100vw - 1.5rem) !important;
+                max-width: 320px !important;
+            }
+        }
+
+        /* Settings dropdown — click-based on mobile via .open class */
+        .settings-dropdown { display: none; }
+        .settings-open .settings-dropdown { display: block; }
+        @media (hover: hover) {
+            .group:hover .settings-dropdown { display: block; }
+        }
+
+        /* Board view mobile — horizontal scroll with snap */
+        .board-scroll {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            scroll-snap-type: x mandatory;
+            scrollbar-width: none;
+        }
+        .board-scroll::-webkit-scrollbar { display: none; }
+        .board-day-col { scroll-snap-align: start; }
+
+        @media (max-width: 640px) {
+            .board-day-col {
+                min-width: 85vw !important;
+                flex: 0 0 85vw !important;
+            }
+        }
+        @media (min-width: 641px) and (max-width: 1023px) {
+            .board-day-col {
+                min-width: 45vw !important;
+                flex: 0 0 45vw !important;
+            }
+        }
+
+        /* Timeline mobile — shrink label */
+        @media (max-width: 640px) {
+            .timeline-label { width: 3rem !important; min-width: 3rem !important; }
+            .timeline-label span { font-size: 9px !important; }
+        }
+
+        /* Filter tabs — scrollable on mobile */
+        .tabs-container {
+            max-width: 100%;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: none;
+            margin-bottom: 0.5rem;
+        }
+        .tabs-container::-webkit-scrollbar { display: none; }
+        .tabs {
+            display: flex;
+            position: relative;
+            background-color: #fff;
+            box-shadow: 0 0 1px 0 rgba(24, 94, 224, 0.15), 0 6px 12px 0 rgba(24, 94, 224, 0.15);
+            padding: 0.5rem;
+            border-radius: 99px;
+            white-space: nowrap;
+            width: max-content;
+            min-width: 100%;
+        }
+        html.dark .tabs {
+            background-color: #1e293b;
+            box-shadow: 0 0 1px 0 rgba(100, 116, 139, 0.3), 0 6px 12px 0 rgba(100, 116, 139, 0.2);
+        }
+        .tabs * { z-index: 2; }
+        .tabs-container input[type="radio"] { display: none; }
+        .tab {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 30px;
+            min-width: 50px;
+            padding: 0 10px;
+            font-size: 0.78rem;
+            color: black;
+            font-weight: 500;
+            border-radius: 99px;
+            cursor: pointer;
+            transition: color 0.15s ease-in;
+            position: relative;
+            text-transform: capitalize;
+        }
+        html.dark .tab { color: #cbd5e1; }
+        .notification {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 1rem;
+            height: 1rem;
+            padding: 0 0.25rem;
+            font-size: 10px;
+            margin-left: 0.5rem;
+            border-radius: 50%;
+            background-color: #e6eef9;
+            color: #185ee0;
+            transition: 0.15s ease-in;
+        }
+        html.dark .notification { background-color: #334155; color: #94a3b8; }
+        .tabs-container input[type="radio"]:checked + label { color: #185ee0; }
+        html.dark .tabs-container input[type="radio"]:checked + label { color: #60a5fa; }
+        .tabs-container input[type="radio"]:checked + label > .notification { background-color: #185ee0; color: #fff; }
+        html.dark .tabs-container input[type="radio"]:checked + label > .notification { background-color: #3b82f6; }
+        .glider {
+            position: absolute;
+            display: flex;
+            height: 30px;
+            width: 50px;
+            background-color: #e6eef9;
+            z-index: 1;
+            border-radius: 99px;
+            transition: left 0.25s ease-out, width 0.25s ease-out;
+            top: 50%;
+            transform: translateY(-50%);
+            pointer-events: none;
+        }
+        html.dark .glider { background-color: #334155; }
+
+        /* Analytics charts min height on mobile */
+        @media (max-width: 640px) {
+            .chart-card { height: 260px !important; }
+        }
+
+        /* Safe area bottom padding for newer iPhones/Android */
+        .safe-bottom { padding-bottom: env(safe-area-inset-bottom, 0px); }
+
+        /* Category Manager Modal */
+        .cat-color-swatch {
+            width: 26px; height: 26px;
+            border-radius: 50%;
+            cursor: pointer;
+            border: 3px solid transparent;
+            transition: transform 0.15s, border-color 0.15s;
+            flex-shrink: 0;
+        }
+        .cat-color-swatch:hover { transform: scale(1.15); }
+        .cat-color-swatch.selected { border-color: #1e293b; }
+        html.dark .cat-color-swatch.selected { border-color: #fff; }
+
+        /* Slide-down for category modal */
+        .cat-modal-enter-active, .cat-modal-leave-active { transition: all 0.25s ease; }
+        .cat-modal-enter-from, .cat-modal-leave-to { opacity: 0; transform: scale(0.97) translateY(-8px); }
+
+        /* ── PWA Install Banner ── */
+        #pwa-banner {
+            position: fixed; bottom:0; left:0; right:0; z-index:9999;
+            background:#ffffff; border-radius:1.5rem 1.5rem 0 0;
+            box-shadow:0 -8px 40px rgba(0,0,0,.18);
+            padding:1.25rem 1.25rem calc(1.25rem + env(safe-area-inset-bottom,0px));
+            transform:translateY(100%);
+            transition:transform .4s cubic-bezier(.34,1.2,.64,1);
+            touch-action:none;
+        }
+        html.dark #pwa-banner{background:#1e293b;}
+        #pwa-banner.show{transform:translateY(0);}
+        #pwa-banner .chip{
+            display:inline-flex;align-items:center;gap:5px;
+            background:#f0fdf4;color:#166534;border:1px solid #bbf7d0;
+            border-radius:99px;padding:3px 10px;font-size:11px;font-weight:600;
+        }
+        html.dark #pwa-banner .chip{background:#064e3b;color:#6ee7b7;border-color:#065f46;}
+        #pwa-install-btn{
+            width:100%;background:linear-gradient(135deg,#4f46e5,#7c3aed);
+            color:#fff;border:none;border-radius:14px;padding:14px;
+            font-size:15px;font-weight:700;cursor:pointer;
+            box-shadow:0 4px 18px rgba(79,70,229,.35);
+            transition:transform .15s,box-shadow .15s;
+        }
+        #pwa-install-btn:active{transform:scale(.97);}
+        #pwa-banner .ios-step{
+            display:flex;align-items:center;gap:10px;
+            padding:7px 0;font-size:13px;color:#475569;
+        }
+        html.dark #pwa-banner .ios-step{color:#94a3b8;}
+        #pwa-banner .ios-step .step-num{
+            width:24px;height:24px;border-radius:50%;background:#4f46e5;
+            color:#fff;display:flex;align-items:center;justify-content:center;
+            font-size:12px;font-weight:700;flex-shrink:0;
+        }
+        #pwa-fab{
+            position:fixed;bottom:calc(1.5rem + env(safe-area-inset-bottom,0px));
+            right:1.25rem;z-index:9998;width:52px;height:52px;border-radius:50%;
+            background:linear-gradient(135deg,#4f46e5,#7c3aed);color:#fff;
+            border:none;cursor:pointer;box-shadow:0 4px 20px rgba(79,70,229,.4);
+            display:flex;align-items:center;justify-content:center;font-size:20px;
+            animation:pwa-bounce 2.5s ease-in-out infinite;transition:opacity .3s;
+        }
+        #pwa-fab.hidden-fab{opacity:0;pointer-events:none;}
+        @keyframes pwa-bounce{0%,100%{transform:translateY(0);}50%{transform:translateY(-7px);}}
+        #pwa-header-btn{
+            width:34px;height:34px;border-radius:10px;
+            background:rgba(79,70,229,.10);border:1.5px solid rgba(79,70,229,.25);
+            color:#4f46e5;cursor:pointer;display:flex;align-items:center;
+            justify-content:center;font-size:15px;transition:background .15s;
+        }
+        #pwa-header-btn:hover{background:rgba(79,70,229,.18);}
+        #pwa-success-toast{
+            position:fixed;top:1rem;left:50%;
+            transform:translateX(-50%) translateY(-80px);
+            background:#10b981;color:#fff;padding:10px 20px;
+            border-radius:99px;font-size:13px;font-weight:600;
+            z-index:10000;transition:transform .4s cubic-bezier(.34,1.56,.64,1);
+            white-space:nowrap;box-shadow:0 4px 16px rgba(16,185,129,.4);
+        }
+        #pwa-success-toast.show{transform:translateX(-50%) translateY(0);}
+        #pwa-banner-handle{
+            width:36px;height:4px;border-radius:99px;
+            background:#cbd5e1;margin:0 auto 14px;
+        }
+
+        /* ── Analytics visibility toggle switch ── */
+        .ana-toggle { position: relative; display: inline-flex; align-items: center; cursor: pointer; }
+        .ana-toggle input { position: absolute; opacity: 0; width: 0; height: 0; }
+        .ana-track {
+            width: 32px; height: 18px;
+            background: #e2e8f0;
+            border-radius: 99px;
+            transition: background 0.2s;
+            flex-shrink: 0;
+        }
+        html.dark .ana-track { background: #334155; }
+        .ana-toggle input:checked ~ .ana-track { background: #6366f1; }
+        .ana-thumb {
+            position: absolute;
+            left: 2px;
+            width: 14px; height: 14px;
+            background: #fff;
+            border-radius: 50%;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+            transition: transform 0.2s cubic-bezier(0.34,1.56,0.64,1);
+        }
+        .ana-toggle input:checked ~ .ana-track .ana-thumb { transform: translateX(14px); }
+    </style>
+</head>
+<body class="bg-background text-gray-800 dark:text-gray-100 h-screen overflow-hidden transition-colors duration-300 selection:bg-gray-700 selection:text-white safe-bottom">
+
+    <div id="app" class="h-full flex flex-col">
+        
+        <!-- ================= FLOATING TIMER (POMODORO) ================= -->
+        <div v-if="auth.isAuthenticated.value" 
+             class="timer-widget-wrap fixed bottom-6 right-6 z-50 flex flex-col items-end gap-3 pointer-events-none">
+            
+            <!-- Active Timer Widget -->
+			<transition name="slide-up">
+				<div v-if="timer.isVisible.value" class="timer-panel pointer-events-auto bg-surface dark:bg-slate-800 border border-border shadow-2xl rounded-2xl p-4 w-64 backdrop-blur-md relative overflow-hidden group">
+					<div class="absolute top-0 left-0 h-1 bg-gray-200 w-full"><div class="h-full transition-all duration-1000 linear" :class="`bg-${ui.themeColor.value}-500`" :style="{ width: timer.progress.value + '%' }"></div></div>
+					
+					<div class="flex justify-between items-start mb-2 mt-1">
+						<div>
+							<span class="text-xs font-bold uppercase text-gray-400 tracking-wider block">Focus Mode</span>
+							<input :value="timer.taskName.value" 
+								   @input="timer.taskName.value = $event.target.value"
+								   type="text" 
+								   placeholder="Task name..." 
+								   class="text-sm font-medium bg-transparent border-b border-transparent focus:border-gray-300 outline-none w-40 dark:text-white placeholder-gray-400">
+						</div>
+						<button @click="timer.toggleVisibility" class="text-gray-400 hover:text-gray-600"><i class="fas fa-chevron-down"></i></button>
+						</div>
+
+						<!-- Category Selection -->
+						<div class="mb-3">
+							<select :value="timer.selectedCategory.value"
+									@change="timer.selectedCategory.value = $event.target.value"
+									class="w-full text-xs bg-gray-50 dark:bg-slate-700 border border-border rounded-lg px-2 py-1.5 outline-none focus:ring-1" 
+									:class="`focus:ring-${ui.themeColor.value}-500`">
+								<option v-for="cat in ui.categories.value" :key="cat.name" :value="cat.name" class="capitalize">{{ cat.name }}</option>
+							</select>
+						</div>
+					
+					<div class="flex items-center justify-between">
+						<span class="text-3xl font-mono font-bold tabular-nums tracking-tighter">{{ timer.formattedTime.value }}</span>
+						<div class="flex gap-2">
+							<button @click="timer.toggle" class="w-10 h-10 rounded-full flex items-center justify-center transition-all shadow-lg" :class="timer.isRunning.value ? 'bg-amber-100 text-amber-600 hover:bg-amber-200' : `bg-${ui.themeColor.value}-100 text-${ui.themeColor.value}-600 hover:bg-${ui.themeColor.value}-200`">
+								<i class="fas" :class="timer.isRunning.value ? 'fa-pause' : 'fa-play'"></i>
+							</button>
+							<button @click="timer.stop" class="w-10 h-10 rounded-full bg-gray-100 dark:bg-slate-700 text-gray-500 hover:text-red-500 hover:bg-red-50 flex items-center justify-center transition-all">
+								<i class="fas fa-stop"></i>
+							</button>
+						</div>
+					</div>
+				</div>
+			</transition>
+
+            <!-- Minimized Timer Button -->
+            <button v-else @click="timer.toggleVisibility" class="pointer-events-auto w-14 h-14 rounded-full shadow-xl flex items-center justify-center text-white transition-transform hover:scale-110 active:scale-95 relative" :class="[timer.isRunning.value ? 'timer-glow bg-red-500' : `bg-${ui.themeColor.value}-600`]">
+                <i class="fas fa-clock text-xl"></i>
+                <span v-if="timer.isRunning.value" class="absolute -top-1 -right-1 flex h-3 w-3"><span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span><span class="relative inline-flex rounded-full h-3 w-3 bg-red-400"></span></span>
+            </button>
+        </div>
+
+        <!-- Toast -->
+        <transition name="slide-up">
+            <div v-if="toast.show" :class="toast.type === 'error' ? 'bg-red-500' : 'bg-emerald-500'" class="fixed top-6 left-1/2 -translate-x-1/2 z-[100] px-6 py-2.5 rounded-full shadow-xl text-white font-medium text-sm flex items-center gap-2">
+                 <i class="fas" :class="toast.type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle'"></i> {{ toast.message }}
+            </div>
+        </transition>
+
+        <!-- ================= LOGIN ================= -->
+        <div v-if="!auth.isAuthenticated.value" class="flex-1 flex items-center justify-center p-4 relative overflow-hidden bg-gray-50 dark:bg-slate-900">
+            <div class="glass-panel p-8 sm:p-10 rounded-3xl shadow-2xl w-full max-w-sm border border-white/20 text-center relative z-10">
+                <div class="w-16 h-16 rounded-2xl mx-auto flex items-center justify-center shadow-lg mb-6 bg-gradient-to-br from-indigo-500 to-violet-600 text-white">
+                    <i class="fas fa-layer-group text-2xl"></i>
+                </div>
+                <h1 class="text-3xl font-extrabold mb-1 dark:text-white">ActivityFlow</h1>
+                <p class="text-gray-500 dark:text-gray-400 text-sm mb-8 font-medium">Productivity OS v4.1</p>
+                <form @submit.prevent="auth.login">
+                    <input v-model="auth.pin.value" type="password" placeholder="••••" class="w-full px-5 py-3 mb-4 bg-white dark:bg-slate-800 border border-border rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-center text-xl tracking-[0.5em] transition-all shadow-sm" maxlength="4" autofocus>
+                    <button type="submit" class="w-full bg-gray-900 dark:bg-white dark:text-gray-900 text-white py-3.5 rounded-xl font-bold hover:transform hover:scale-[1.02] transition-all shadow-lg">Enter Workspace</button>
+                    <p class="mt-4 text-xs text-gray-400">Hint: 1235</p>
+                </form>
+            </div>
+        </div>
+
+        <!-- ================= APP LAYOUT ================= -->
+        <div v-else class="flex-1 flex flex-col h-full">
+            
+            <!-- Navbar -->
+            <nav class="h-16 border-b border-border bg-surface z-20 px-4 sm:px-6 flex items-center justify-between shrink-0">
+                <div class="flex items-center gap-4">
+                    <div class="w-9 h-9 rounded-xl flex items-center justify-center text-white shadow-md transition-colors" :class="`bg-${ui.themeColor.value}-600`">
+                        <i class="fas fa-layer-group"></i>
+                    </div>
+                    <div class="hidden md:block">
+                        <h1 class="font-bold text-lg leading-tight dark:text-white">ActivityFlow</h1>
+                        <p class="text-[10px] text-gray-500 font-medium uppercase tracking-wider">Ultimate Edition</p>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-2 sm:gap-3">
+                    <!-- Tab Switcher -->
+                    <div class="bg-gray-100 dark:bg-slate-800 p-1 rounded-xl flex">
+                        <button v-for="view in ['board', 'timeline', 'analytics']" :key="view"
+                            @click="ui.currentView.value = view"
+                            class="w-9 h-8 sm:w-auto sm:px-4 rounded-lg text-sm font-semibold transition-all flex items-center justify-center gap-2"
+                            :class="ui.currentView.value === view ? `bg-white dark:bg-slate-600 shadow-sm text-${ui.themeColor.value}-600 dark:text-white` : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'">
+                            <i class="fas" :class="{'board': 'fa-columns', 'timeline': 'fa-stream', 'analytics': 'fa-chart-pie'}[view]"></i>
+                            <span class="hidden sm:inline capitalize">{{ view }}</span>
+                        </button>
+                    </div>
+
+                    <!-- Add Button -->
+                    <button @click="ui.openModal()" class="text-white px-4 py-2 rounded-xl text-sm font-bold shadow-lg shadow-gray-300/50 dark:shadow-none flex items-center gap-2 hover:brightness-110 active:scale-95 transition-all" :class="`bg-${ui.themeColor.value}-600`">
+                        <i class="fas fa-plus"></i> <span class="hidden sm:inline">Log</span>
+                    </button>
+
+                    <!-- PWA Install Header Button -->
+                    <button id="pwa-header-btn" onclick="PWA.openBanner()" title="Install App" style="display:none">
+                        <i class="fas fa-download"></i>
+                    </button>
+
+                    <!-- User Menu -->
+                    <div class="relative ml-2" :class="ui.settingsOpen && ui.settingsOpen.value ? 'settings-open' : ''">
+                        <button @click="ui.settingsOpen && (ui.settingsOpen.value = !ui.settingsOpen.value)" class="w-9 h-9 rounded-full bg-gray-100 dark:bg-slate-800 border border-border flex items-center justify-center text-gray-500 hover:bg-gray-200 dark:hover:bg-slate-700 transition-colors">
+                            <i class="fas fa-cog"></i>
+                        </button>
+                        <!-- Dropdown -->
+                        <div class="settings-dropdown absolute right-0 top-full mt-2 w-56 bg-surface dark:bg-slate-800 shadow-xl rounded-xl border border-border overflow-hidden z-50 animate-fade-in-down">
+                            <div class="p-3 border-b border-border">
+                                <span class="text-xs font-bold text-gray-400 uppercase block mb-2">Theme</span>
+                                <div class="flex gap-2 justify-between">
+                                    <button v-for="color in ['indigo', 'rose', 'emerald', 'amber', 'violet']" :key="color"
+                                            @click="ui.setTheme(color)"
+                                            class="w-6 h-6 rounded-full border-2 transition-transform hover:scale-110"
+                                            :class="[`bg-${color}-500`, ui.themeColor.value === color ? 'border-gray-900 dark:border-white' : 'border-transparent']">
+                                    </button>
+                                </div>
+                            </div>
+                            <button @click="ui.toggleDarkMode" class="w-full text-left px-4 py-3 text-xs font-medium hover:bg-gray-50 dark:hover:bg-slate-700 flex justify-between items-center">
+                                Dark Mode <i class="fas" :class="ui.isDark.value ? 'fa-toggle-on text-indigo-500' : 'fa-toggle-off text-gray-300'"></i>
+                            </button>
+							
+							<!-- Export Data -->
+							<button @click="ui.exportData" class="w-full text-left px-4 py-3 text-xs font-medium hover:bg-gray-50 dark:hover:bg-slate-700 flex justify-between items-center text-gray-600 dark:text-gray-300">
+								Export Data <i class="fas fa-download"></i>
+							</button>
+
+							<!-- Import Data -->
+							<button @click="ui.importData" class="w-full text-left px-4 py-3 text-xs font-medium hover:bg-gray-50 dark:hover:bg-slate-700 flex justify-between items-center text-gray-600 dark:text-gray-300">
+								Import Data <i class="fas fa-upload"></i>
+							</button>
+							
+                            <!-- Manage Categories -->
+                            <button @click="ui.isCatModalOpen.value = true; ui.settingsOpen.value = false" class="w-full text-left px-4 py-3 text-xs font-medium hover:bg-gray-50 dark:hover:bg-slate-700 flex justify-between items-center text-gray-600 dark:text-gray-300 border-t border-border">
+                                Manage Categories <i class="fas fa-tags"></i>
+                            </button>
+
+                            <!-- Download App Feature -->
+                            <button @click="ui.downloadApp" class="w-full text-left px-4 py-3 text-xs font-medium hover:bg-gray-50 dark:hover:bg-slate-700 flex justify-between items-center text-gray-600 dark:text-gray-300">
+                                Download Offline App <i class="fas fa-download"></i>
+                            </button>
+                            
+                            <button @click="auth.logout" class="w-full text-left px-4 py-3 text-xs font-medium text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10 border-t border-border">Sign Out</button>
+                        </div>
+                    </div>
+                </div>
+            </nav>
+
+            <!-- Main Content -->
+            <main class="flex-1 overflow-hidden relative bg-background">
+                
+                <!-- BOARD VIEW -->
+                <div v-if="ui.currentView.value === 'board'" class="h-full flex flex-col p-3 sm:p-6">
+                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-3 sm:mb-4 gap-3 shrink-0">
+                        <div class="flex items-center bg-surface border border-border p-1 rounded-xl shadow-sm">
+                            <button @click="board.prevWeek" class="w-8 h-8 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700 text-gray-500"><i class="fas fa-chevron-left"></i></button>
+                            <span class="text-xs font-bold w-32 text-center text-gray-700 dark:text-gray-200">{{ board.dateRange.value }}</span>
+                            <button @click="board.nextWeek" class="w-8 h-8 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700 text-gray-500"><i class="fas fa-chevron-right"></i></button>
+                        </div>
+                        <!-- Filters -->
+                        <!-- Filters - New UI -->
+						<div class="tabs-container" ref="tabsContainerRef">
+							<div class="tabs" id="filter-tabs-bar">
+								<input type="radio" id="filter-all" name="filter-tabs" :checked="ui.filter.value === 'all'" @change="ui.filter.value = 'all'; ui.updateGlider()">
+								<label class="tab" for="filter-all" data-tab-id="all">All</label>
+								
+								<template v-for="(cat, index) in ui.categories.value" :key="cat.name">
+									<input type="radio" :id="'filter-' + cat.name" name="filter-tabs" :checked="ui.filter.value === cat.name" @change="ui.filter.value = cat.name; ui.updateGlider()">
+									<label class="tab" :for="'filter-' + cat.name" :data-tab-id="cat.name">
+										<span class="w-2 h-2 rounded-full mr-1.5 flex-shrink-0" :style="{ background: ui.getCatGradient(cat) }"></span>
+										{{ cat.name.charAt(0).toUpperCase() + cat.name.slice(1) }}
+										<span class="notification">{{ board.weekCatCount(cat.name) }}</span>
+									</label>
+								</template>
+								
+								<span class="glider" :style="{ left: ui.gliderLeft.value + 'px', width: ui.gliderWidth.value + 'px' }"></span>
+							</div>
+						</div>
+                    </div>
+
+                    <div class="flex-1 overflow-hidden pb-2">
+                        <!-- Mobile swipe hint -->
+                        <p class="sm:hidden text-xs text-gray-400 text-center mb-2"><i class="fas fa-hand-point-right mr-1"></i>Swipe to see other days</p>
+                        <div class="board-scroll touch-scroll flex h-full gap-3 sm:gap-4">
+                            <div v-for="day in board.weekDays.value" :key="day.dateStr" class="board-day-col flex-1 flex flex-col min-w-[140px] rounded-2xl bg-gray-100/50 dark:bg-slate-800/30 border border-border group relative">
+                                <!-- Day Header -->
+                                <div class="p-3 border-b border-border flex justify-between items-center bg-surface/50 dark:bg-slate-800/50 rounded-t-2xl backdrop-blur-sm sticky top-0 z-10">
+                                    <div>
+                                        <div class="text-[10px] font-bold uppercase tracking-wider" :class="day.isToday ? `text-${ui.themeColor.value}-600` : 'text-gray-400'">{{ day.dayName }}</div>
+                                        <div class="text-sm font-bold">{{ day.dayNum }}</div>
+                                    </div>
+                                    <div class="text-xs font-medium text-gray-400">{{ day.totalHours }}h</div>
+                                </div>
+                                <!-- Cards -->
+                                <!-- Cards -->
+								<div class="flex-1 p-2 overflow-y-auto space-y-2 custom-scrollbar">
+									<div v-for="act in day.activities" :key="act.id" @click="ui.openModal(act)" 
+										 class="p-3 rounded-xl shadow-sm hover:shadow-md transition-all cursor-pointer relative group/card overflow-hidden"
+										 :style="{ background: ui.getCategoryGradient(act.category) }">
+										<!-- Colored accent bar -->
+										<div class="absolute top-0 left-0 w-1 h-full opacity-60" :style="{ background: ui.getCatByName(act.category).gradient }"></div>
+										
+										<!-- Content with better contrast -->
+										<div class="pl-2 relative z-10">
+											<div class="flex justify-between items-start mb-1">
+												<h4 class="font-bold text-xs text-white drop-shadow-md">{{ act.name }}</h4>
+												<span class="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-white/20 text-white backdrop-blur-sm capitalize">
+													{{ act.category }}
+												</span>
+											</div>
+											<div class="flex justify-between text-[10px] text-white/90 font-medium">
+												<span><i class="far fa-clock mr-1"></i>{{ act.startTime }} - {{ act.endTime }}</span>
+												<span class="bg-white/20 px-2 py-0.5 rounded-full text-white font-bold">{{ act.duration }}h</span>
+											</div>
+										</div>
+									</div>
+								</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TIMELINE VIEW (GANTT) -->
+                <div v-if="ui.currentView.value === 'timeline'" class="h-full flex flex-col p-4 sm:p-6 overflow-hidden">
+                    <div class="flex justify-between items-center mb-6">
+                        <h2 class="text-xl font-bold dark:text-white">Timeline <span class="text-gray-400 text-sm font-normal ml-2">Weekly View</span></h2>
+                        <div class="flex items-center gap-2">
+                             <button @click="board.prevWeek" class="w-8 h-8 rounded-lg bg-surface border border-border flex items-center justify-center hover:bg-gray-50"><i class="fas fa-chevron-left text-xs"></i></button>
+                             <button @click="board.nextWeek" class="w-8 h-8 rounded-lg bg-surface border border-border flex items-center justify-center hover:bg-gray-50"><i class="fas fa-chevron-right text-xs"></i></button>
+                        </div>
+                    </div>
+
+                    <div class="flex-1 overflow-auto bg-surface dark:bg-slate-800 rounded-2xl border border-border shadow-sm flex flex-col relative">
+                        <!-- Time Header -->
+                        <div class="h-10 border-b border-border flex sticky top-0 bg-surface dark:bg-slate-800 z-20">
+                            <div class="timeline-label w-24 shrink-0 border-r border-border bg-gray-50 dark:bg-slate-900"></div>
+                            <div class="flex-1 relative">
+                                <div v-for="h in 24" :key="h" class="absolute h-full border-l border-border/30 text-[10px] text-gray-400 font-medium pl-1" :style="{ left: ((h-1)/24)*100 + '%' }">{{ h-1 }}:00</div>
+                            </div>
+                        </div>
+
+                        <!-- Rows -->
+                        <div class="flex-1 overflow-y-auto">
+                            <div v-for="day in board.weekDays.value" :key="day.dateStr" class="flex border-b border-border/50 h-20 group hover:bg-gray-50 dark:hover:bg-slate-700/30 transition-colors">
+                                <!-- Row Label -->
+                                <div class="timeline-label w-24 shrink-0 border-r border-border p-3 flex flex-col justify-center items-center bg-gray-50/50 dark:bg-slate-900/50 sticky left-0 z-10">
+                                    <span class="text-xs font-bold uppercase text-gray-400">{{ day.dayName }}</span>
+                                    <span class="text-sm font-bold" :class="day.isToday ? `text-${ui.themeColor.value}-600` : ''">{{ day.dayNum }}</span>
+                                </div>
+                                <!-- Bars Area -->
+                                <div class="flex-1 relative bg-[linear-gradient(90deg,transparent_4.16%,var(--border-color)_4.16%,transparent_4.2%)]" style="background-size: 4.166% 100%">
+                                    <div v-for="act in day.activities" :key="act.id"
+                                         @click="ui.openModal(act)"
+                                         class="absolute top-3 bottom-3 rounded-lg shadow-sm border border-white/20 hover:brightness-95 cursor-pointer flex items-center px-2 overflow-hidden text-[10px] font-bold text-white transition-all hover:scale-[1.02] hover:z-20"
+                                         :style="{ 
+                                            background: ui.getCategoryGradient(act.category),
+                                            left: timeline.getLeftPos(act.startTime), 
+                                            width: timeline.getWidth(act.duration) 
+                                         }">
+                                        <span class="truncate drop-shadow-md">{{ act.name }}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ANALYTICS VIEW -->
+                <div v-if="ui.currentView.value === 'analytics'" class="h-full overflow-y-auto p-4 sm:p-8 bg-gray-50/50 dark:bg-slate-900/50">
+                    <div class="max-w-5xl mx-auto space-y-8">
+                        
+                        <!-- Gamification Banner -->
+                        <div class="bg-gradient-to-r from-indigo-900 to-violet-900 rounded-3xl p-6 sm:p-8 text-white shadow-xl relative overflow-hidden">
+                            <div class="absolute top-0 right-0 p-8 opacity-10"><i class="fas fa-trophy text-9xl"></i></div>
+                            <div class="relative z-10 flex flex-col sm:flex-row gap-8 items-center">
+                                <div class="text-center sm:text-left">
+                                    <div class="text-indigo-200 text-xs font-bold uppercase tracking-wider mb-1">Current Streak</div>
+                                    <div class="text-5xl font-extrabold flex items-center justify-center sm:justify-start gap-3">
+                                        {{ gamification.streak.value }} <span class="text-2xl font-medium opacity-60">days</span>
+                                        <i class="fas fa-fire text-orange-500 animate-pulse"></i>
+                                    </div>
+                                </div>
+                                <div class="h-12 w-px bg-white/20 hidden sm:block"></div>
+                                <div class="flex-1 flex gap-4 overflow-x-auto pb-2 sm:pb-0 w-full justify-center sm:justify-start">
+                                    <div v-for="badge in gamification.badges.value" :key="badge.id" class="flex flex-col items-center gap-2 group cursor-help relative">
+                                        <div class="w-14 h-14 rounded-full flex items-center justify-center text-2xl shadow-lg transition-transform hover:scale-110" :class="badge.unlocked ? 'bg-yellow-400 text-yellow-900' : 'bg-white/10 text-white/30 grayscale'">
+                                            <i :class="badge.icon"></i>
+                                        </div>
+                                        <span class="text-[10px] font-bold uppercase tracking-wider opacity-80">{{ badge.name }}</span>
+                                        <!-- Tooltip -->
+                                        <div class="absolute bottom-full mb-2 bg-black text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
+                                            {{ badge.desc }}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Stats Grid -->
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            <div class="bg-surface dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-border">
+                                <div class="text-gray-500 text-xs font-bold uppercase mb-2">Total Logged</div>
+                                <div class="text-3xl font-bold dark:text-white">{{ analytics.totalHours.value }}<span class="text-sm text-gray-400 ml-1">hrs</span></div>
+                            </div>
+                            <div class="bg-surface dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-border">
+                                <div class="text-gray-500 text-xs font-bold uppercase mb-2">Productivity</div>
+                                <div class="text-3xl font-bold text-emerald-500">{{ analytics.productivityScore.value }}%</div>
+                                <div class="w-full bg-gray-100 rounded-full h-1.5 mt-2 overflow-hidden"><div class="bg-emerald-500 h-full" :style="{width: analytics.productivityScore.value + '%'}"></div></div>
+                            </div>
+                            <div class="bg-surface dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-border">
+                                <div class="text-gray-500 text-xs font-bold uppercase mb-2">Top Focus</div>
+                                <div class="text-3xl font-bold text-violet-500 capitalize">{{ analytics.topCategory.value || 'N/A' }}</div>
+                            </div>
+                        </div>
+
+                        <!-- Charts -->
+                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                            <div class="bg-surface dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-border h-80 chart-card relative">
+                                <h3 class="font-bold text-gray-700 dark:text-gray-200 mb-4 text-sm">Category Breakdown</h3>
+                                <canvas id="categoryChart"></canvas>
+                            </div>
+                            <div class="bg-surface dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-border h-80 chart-card relative">
+                                <h3 class="font-bold text-gray-700 dark:text-gray-200 mb-4 text-sm">7-Day Trend</h3>
+                                <canvas id="trendChart"></canvas>
+                            </div>
+                        </div>
+
+                        <!-- ── Weekly Category Line Chart ── -->
+                        <div class="bg-surface dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-border">
+                            <!-- Header -->
+                            <div class="flex items-center justify-between mb-1 flex-wrap gap-3">
+                                <div>
+                                    <h3 class="font-bold text-gray-700 dark:text-gray-200 text-sm">Daily Category Breakdown</h3>
+                                    <p class="text-xs text-gray-400 mt-0.5">Hours per category · selected week</p>
+                                </div>
+                                <!-- Week navigator shared with board -->
+                                <div class="flex items-center gap-1 bg-gray-100 dark:bg-slate-700 p-1 rounded-xl">
+                                    <button @click="board.prevWeek" class="w-7 h-7 rounded-lg hover:bg-white dark:hover:bg-slate-600 text-gray-500 dark:text-gray-300 flex items-center justify-center transition-colors">
+                                        <i class="fas fa-chevron-left text-xs"></i>
+                                    </button>
+                                    <span class="text-xs font-bold px-2 text-gray-600 dark:text-gray-200 min-w-[120px] text-center">{{ board.dateRange.value }}</span>
+                                    <button @click="board.nextWeek" class="w-7 h-7 rounded-lg hover:bg-white dark:hover:bg-slate-600 text-gray-500 dark:text-gray-300 flex items-center justify-center transition-colors">
+                                        <i class="fas fa-chevron-right text-xs"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <!-- Canvas -->
+                            <div class="relative mt-4" style="height:300px;">
+                                <canvas id="weeklyLineChart"></canvas>
+                                <div v-if="analytics.weeklyLineEmpty.value"
+                                     class="absolute inset-0 flex flex-col items-center justify-center gap-2 text-gray-300 dark:text-slate-600 pointer-events-none">
+                                    <i class="fas fa-chart-line text-4xl"></i>
+                                    <span class="text-sm font-medium">No visible data for this week</span>
+                                </div>
+                            </div>
+                            <!-- Legend -->
+                            <div v-if="!analytics.weeklyLineEmpty.value" class="flex flex-wrap gap-x-5 gap-y-2 mt-4 pt-4 border-t border-border">
+                                <div v-for="leg in analytics.weeklyLineLegend.value" :key="leg.name" class="flex items-center gap-1.5">
+                                    <span class="w-8 h-[3px] rounded-full inline-block" :style="{ background: leg.color }"></span>
+                                    <span class="text-xs font-semibold text-gray-500 dark:text-gray-400 capitalize">{{ leg.name }}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+
+            </main>
+        </div>
+
+        <!-- ================= MODAL ================= -->
+        <div v-if="ui.isModalOpen.value" class="fixed inset-0 z-[60] flex items-end sm:items-center justify-center sm:p-4">
+            <div class="absolute inset-0 bg-gray-900/40 backdrop-blur-sm transition-opacity" @click="ui.closeModal"></div>
+            <div class="modal-sheet bg-surface dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-lg z-10 overflow-hidden transform transition-all border border-border">
+                <div class="px-6 py-5 border-b border-border flex justify-between items-center bg-gray-50/50 dark:bg-slate-900/50">
+                    <h3 class="text-lg font-bold dark:text-white">{{ dataMgr.editingId.value ? 'Edit Entry' : 'New Entry' }}</h3>
+                    <div class="flex gap-2">
+                         <button v-if="dataMgr.editingId.value" @click="dataMgr.deleteActivity(dataMgr.editingId.value); ui.closeModal()" class="text-red-500 text-sm font-medium hover:bg-red-50 px-2 py-1 rounded">Delete</button>
+                         <button @click="ui.closeModal" class="text-gray-400 hover:text-gray-600"><i class="fas fa-times"></i></button>
+                    </div>
+                </div>
+                
+                <form @submit.prevent="dataMgr.saveActivity" class="p-6 space-y-5">
+                    <div>
+                        <label class="block text-xs font-bold text-gray-400 uppercase tracking-wide mb-1.5">Activity Name</label>
+                        <input v-model="form.data.name" required type="text" class="w-full px-4 py-3 bg-gray-50 dark:bg-slate-900 border border-border rounded-xl focus:ring-2 outline-none dark:text-white font-medium" :class="`focus:ring-${ui.themeColor.value}-500`" placeholder="E.g., Client Meeting">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-gray-400 uppercase tracking-wide mb-2">Category</label>
+                        <div class="grid grid-cols-3 gap-2">
+                            <button type="button" v-for="cat in ui.categories.value" :key="cat.name"
+                                @click="form.data.category = cat.name"
+                                class="px-3 py-2.5 text-xs font-bold rounded-lg border transition-all capitalize flex items-center gap-1.5 justify-center"
+                                :class="form.data.category === cat.name ? 'border-transparent text-white shadow-md' : 'bg-transparent border-border text-gray-500 hover:border-gray-400'"
+                                :style="form.data.category === cat.name ? { background: ui.getCatGradient(cat) } : {}">
+                                <span v-if="form.data.category !== cat.name" class="w-2 h-2 rounded-full flex-shrink-0" :style="{ background: ui.getCatGradient(cat) }"></span>
+                                {{ cat.name }}
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-bold text-gray-400 uppercase tracking-wide mb-1.5">Start</label>
+                            <input v-model="form.data.startTime" required type="time" class="w-full px-4 py-3 bg-gray-50 dark:bg-slate-900 border border-border rounded-xl focus:ring-2 outline-none dark:text-white" :class="`focus:ring-${ui.themeColor.value}-500`">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-400 uppercase tracking-wide mb-1.5">End</label>
+                            <input v-model="form.data.endTime" required type="time" class="w-full px-4 py-3 bg-gray-50 dark:bg-slate-900 border border-border rounded-xl focus:ring-2 outline-none dark:text-white" :class="`focus:ring-${ui.themeColor.value}-500`">
+                        </div>
+                    </div>
+                    
+                    <!-- Recurring Toggle -->
+                    <div v-if="!dataMgr.editingId.value" class="flex items-center gap-3 p-3 bg-gray-50 dark:bg-slate-900/50 rounded-xl border border-border">
+                        <input v-model="form.isRecurring" type="checkbox" id="recurring" class="w-5 h-5 rounded text-indigo-600 focus:ring-indigo-500">
+                        <label for="recurring" class="text-sm font-medium text-gray-700 dark:text-gray-300">Repeat same time for next 4 weeks</label>
+                    </div>
+
+                    <button type="submit" class="w-full text-white font-bold py-3.5 rounded-xl transition-all shadow-lg hover:shadow-xl active:scale-[0.99]" :class="`bg-${ui.themeColor.value}-600 hover:bg-${ui.themeColor.value}-700 shadow-${ui.themeColor.value}-500/30`">
+                        Save Activity
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- ================= CATEGORY MANAGER MODAL ================= -->
+        <transition name="cat-modal">
+        <div v-if="ui.isCatModalOpen.value" class="fixed inset-0 z-[70] flex items-end sm:items-center justify-center sm:p-4">
+            <div class="absolute inset-0 bg-gray-900/40 backdrop-blur-sm" @click="ui.isCatModalOpen.value = false"></div>
+            <div class="modal-sheet bg-surface dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-md z-10 border border-border overflow-hidden">
+                <!-- Header -->
+                <div class="px-6 py-4 border-b border-border flex justify-between items-center bg-gray-50/50 dark:bg-slate-900/50">
+                    <div>
+                        <h3 class="text-base font-bold dark:text-white">Manage Categories</h3>
+                        <p class="text-xs text-gray-400 mt-0.5">{{ ui.categories.value.length }} categories · toggle to include in analytics</p>
+                    </div>
+                    <button @click="ui.isCatModalOpen.value = false" class="text-gray-400 hover:text-gray-600 w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+
+                <!-- Column labels -->
+                <div class="px-4 pt-2 pb-1 flex items-center gap-3">
+                    <div class="w-8 shrink-0"></div>
+                    <span class="flex-1 text-[10px] font-bold uppercase tracking-widest text-gray-400">Category</span>
+                    <span class="text-[10px] font-bold uppercase tracking-widest text-gray-400 mr-1 flex items-center gap-1">
+                        <i class="fas fa-chart-line text-[9px]"></i> Analytics
+                    </span>
+                    <div class="w-7 shrink-0"></div>
+                </div>
+
+                <!-- Category List -->
+                <div class="px-4 pb-2 max-h-64 overflow-y-auto custom-scrollbar space-y-1.5">
+                    <div v-for="cat in ui.categories.value" :key="cat.name"
+                         class="flex items-center gap-3 px-3 py-2.5 rounded-xl border transition-all"
+                         :class="cat.inAnalytics !== false
+                             ? 'border-border bg-gray-50/30 dark:bg-slate-900/30'
+                             : 'border-dashed border-gray-200 dark:border-slate-700 bg-gray-50/10 dark:bg-slate-900/10 opacity-60'">
+                        <!-- Color avatar -->
+                        <div class="w-8 h-8 rounded-lg flex items-center justify-center text-white text-xs font-bold flex-shrink-0 shadow-sm"
+                             :style="{ background: ui.getCatGradient(cat) }">
+                            {{ cat.name.charAt(0).toUpperCase() }}
+                        </div>
+                        <!-- Name -->
+                        <span class="flex-1 text-sm font-semibold capitalize dark:text-gray-200">{{ cat.name }}</span>
+                        <!-- Analytics toggle -->
+                        <label class="ana-toggle mr-1" :title="cat.inAnalytics !== false ? 'Included in analytics' : 'Excluded from analytics'">
+                            <input type="checkbox"
+                                   :checked="cat.inAnalytics !== false"
+                                   @change="ui.toggleCatAnalytics(cat.name)">
+                            <span class="ana-track">
+                                <span class="ana-thumb"></span>
+                            </span>
+                        </label>
+                        <!-- Built-in badge / delete -->
+                        <span v-if="cat.builtin" class="text-[10px] font-bold uppercase tracking-wide text-gray-400 bg-gray-100 dark:bg-slate-700 px-2 py-0.5 rounded-full w-7 text-center">—</span>
+                        <button v-else @click="ui.deleteCategory(cat.name)"
+                                class="w-7 h-7 rounded-lg flex items-center justify-center text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all opacity-0 group-hover:opacity-100 hover:opacity-100">
+                            <i class="fas fa-trash-alt text-xs"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Add New Category -->
+                <div class="px-4 pb-5 pt-3 border-t border-border">
+                    <p class="text-xs font-bold text-gray-400 uppercase tracking-wide mb-3">Add New Category</p>
+                    <div class="flex gap-2 mb-3 flex-wrap">
+                        <div v-for="swatch in ui.colorPalette" :key="swatch.key"
+                             class="cat-color-swatch"
+                             :class="{ selected: ui.newCatColor.value === swatch.key }"
+                             :style="{ background: swatch.gradient }"
+                             @click="ui.newCatColor.value = swatch.key">
+                        </div>
+                    </div>
+                    <div class="flex gap-2">
+                        <input v-model="ui.newCatName.value"
+                               @keyup.enter="ui.addCategory()"
+                               type="text" maxlength="20" placeholder="Category name..."
+                               class="flex-1 px-3 py-2.5 text-sm bg-gray-50 dark:bg-slate-900 border border-border rounded-xl outline-none focus:ring-2 dark:text-white"
+                               :class="`focus:ring-${ui.themeColor.value}-500`">
+                        <button @click="ui.addCategory()"
+                                class="px-4 py-2.5 rounded-xl text-white text-sm font-bold transition-all hover:brightness-110 active:scale-95 flex-shrink-0"
+                                :style="{ background: ui.getSwatchGradient(ui.newCatColor.value) }">
+                            <i class="fas fa-plus mr-1"></i> Add
+                        </button>
+                    </div>
+                    <p v-if="ui.catError.value" class="text-xs text-red-500 mt-2 font-medium"><i class="fas fa-exclamation-circle mr-1"></i>{{ ui.catError.value }}</p>
+                </div>
+            </div>
+        </div>
+        </transition>
+
+    </div>
+
+    <!-- LOGIC -->
+    <script>
+        const { createApp, ref, computed, onMounted, watch, reactive, nextTick } = Vue;
+
+        createApp({
+            setup() {
+                
+                // --- AUTH ---
+                const useAuth = () => {
+                    const isAuthenticated = ref(false);
+                    const pin = ref('');
+                    const login = () => {
+                        if (pin.value === '1235') { isAuthenticated.value = true; localStorage.setItem('af_auth', '1'); ui.showToast('Welcome Back'); } 
+                        else { ui.showToast('Invalid PIN', 'error'); pin.value = ''; }
+                    };
+                    const logout = () => { isAuthenticated.value = false; localStorage.removeItem('af_auth'); };
+                    onMounted(() => { if (localStorage.getItem('af_auth')) isAuthenticated.value = true; });
+                    return { isAuthenticated, pin, login, logout };
+                };
+
+                // --- UI & THEME ---
+                const useUI = () => {
+                    const currentView = ref('board');
+                    const isModalOpen = ref(false);
+                    const isCatModalOpen = ref(false);
+                    const isDark = ref(false);
+                    const themeColor = ref('indigo');
+                    const filter = ref('all');
+                    const toast = reactive({ show: false, message: '', type: 'success' });
+                    const settingsOpen = ref(false);
+                    const gliderLeft = ref(8);
+                    const gliderWidth = ref(50);
+
+                    // ── Color palette for custom categories ──
+                    const colorPalette = [
+                        { key: 'sky',    gradient: 'linear-gradient(135deg,#38bdf8,#0284c7)' },
+                        { key: 'pink',   gradient: 'linear-gradient(135deg,#f472b6,#db2777)' },
+                        { key: 'teal',   gradient: 'linear-gradient(135deg,#2dd4bf,#0d9488)' },
+                        { key: 'orange', gradient: 'linear-gradient(135deg,#fb923c,#ea580c)' },
+                        { key: 'lime',   gradient: 'linear-gradient(135deg,#a3e635,#65a30d)' },
+                        { key: 'cyan',   gradient: 'linear-gradient(135deg,#22d3ee,#0891b2)' },
+                        { key: 'fuchsia',gradient: 'linear-gradient(135deg,#e879f9,#a21caf)' },
+                        { key: 'red',    gradient: 'linear-gradient(135deg,#f87171,#dc2626)' },
+                        { key: 'yellow', gradient: 'linear-gradient(135deg,#fde047,#ca8a04)' },
+                        { key: 'slate',  gradient: 'linear-gradient(135deg,#94a3b8,#475569)' },
+                    ];
+
+                    // Built-in categories — inAnalytics:true means shown in charts/stats
+                    const BUILT_IN = [
+                        { name:'work',   builtin:true, colorKey:'indigo',  gradient:'linear-gradient(135deg,#6366f1,#4f46e5)', inAnalytics:true },
+                        { name:'study',  builtin:true, colorKey:'violet',  gradient:'linear-gradient(135deg,#8b5cf6,#7c3aed)', inAnalytics:true },
+                        { name:'health', builtin:true, colorKey:'emerald', gradient:'linear-gradient(135deg,#10b981,#059669)', inAnalytics:true },
+                        { name:'social', builtin:true, colorKey:'rose',    gradient:'linear-gradient(135deg,#f43f5e,#e11d48)', inAnalytics:true },
+                        { name:'hobby',  builtin:true, colorKey:'amber',   gradient:'linear-gradient(135deg,#f59e0b,#d97706)', inAnalytics:true },
+                        { name:'chore',  builtin:true, colorKey:'gray',    gradient:'linear-gradient(135deg,#6b7280,#4b5563)', inAnalytics:true },
+                    ];
+
+                    // categories = reactive array of {name, builtin, colorKey, gradient, inAnalytics}
+                    const categories = ref([...BUILT_IN]);
+
+                    // Filtered list — only categories visible in analytics
+                    const analyticsCategories = computed(() =>
+                        categories.value.filter(c => c.inAnalytics !== false)
+                    );
+
+                    // ── Persist ──
+                    const saveCats = () => {
+                        // Save custom cats
+                        const custom = categories.value.filter(c => !c.builtin);
+                        localStorage.setItem('af_custom_cats', JSON.stringify(custom));
+                        // Save inAnalytics flags for ALL cats (keyed by name)
+                        const flags = {};
+                        categories.value.forEach(c => { flags[c.name] = c.inAnalytics !== false; });
+                        localStorage.setItem('af_ana_flags', JSON.stringify(flags));
+                    };
+
+                    // ── Toggle analytics visibility ──
+                    const toggleCatAnalytics = (name) => {
+                        const cat = categories.value.find(c => c.name === name);
+                        if (!cat) return;
+                        cat.inAnalytics = cat.inAnalytics === false ? true : false;
+                        saveCats();
+                        showToast(cat.inAnalytics
+                            ? `"${name}" included in analytics`
+                            : `"${name}" excluded from analytics`
+                        );
+                    };
+
+                    // Helpers to get gradient for a cat object or by name
+                    const getCatGradient = (catObj) => catObj ? catObj.gradient : 'linear-gradient(135deg,#6b7280,#4b5563)';
+                    const getSwatchGradient = (key) => {
+                        const s = colorPalette.find(p => p.key === key);
+                        return s ? s.gradient : colorPalette[0].gradient;
+                    };
+                    const getCatByName = (name) => categories.value.find(c => c.name === name) || { gradient: 'linear-gradient(135deg,#6b7280,#4b5563)', colorKey:'gray', inAnalytics:true };
+
+                    // Legacy helpers
+                    const getCategoryColor = (catName) => {
+                        const legacyMap = { work:'bg-indigo-500', study:'bg-violet-500', health:'bg-emerald-500', social:'bg-rose-500', hobby:'bg-amber-500', chore:'bg-gray-500' };
+                        return legacyMap[catName] || 'bg-slate-500';
+                    };
+                    const getCategoryGradient = (catName) => getCatByName(catName).gradient;
+
+                    // ── Add / Delete category ──
+                    const newCatName = ref('');
+                    const newCatColor = ref(colorPalette[0].key);
+                    const catError = ref('');
+
+                    const addCategory = () => {
+                        const name = newCatName.value.trim().toLowerCase().replace(/\s+/g, '-');
+                        catError.value = '';
+                        if (!name) { catError.value = 'Please enter a name.'; return; }
+                        if (name.length < 2) { catError.value = 'Name must be at least 2 characters.'; return; }
+                        if (categories.value.find(c => c.name === name)) { catError.value = 'Category already exists.'; return; }
+                        const swatch = colorPalette.find(p => p.key === newCatColor.value) || colorPalette[0];
+                        categories.value.push({ name, builtin: false, colorKey: swatch.key, gradient: swatch.gradient, inAnalytics: true });
+                        saveCats();
+                        showToast(`✓ Category "${name}" added`);
+                        newCatName.value = '';
+                        newCatColor.value = colorPalette[0].key;
+                        setTimeout(updateGlider, 80);
+                    };
+
+                    const deleteCategory = (name) => {
+                        if (!confirm(`Delete category "${name}"? Activities with this category won't be deleted.`)) return;
+                        categories.value = categories.value.filter(c => c.name !== name);
+                        saveCats();
+                        if (filter.value === name) filter.value = 'all';
+                        showToast(`Category "${name}" removed`);
+                        setTimeout(updateGlider, 80);
+                    };
+
+                    // ── Glider ──
+                    const updateGlider = () => {
+                        nextTick(() => {
+                            const bar = document.getElementById('filter-tabs-bar');
+                            if (!bar) return;
+                            const label = bar.querySelector(`[data-tab-id="${filter.value}"]`);
+                            if (!label) return;
+                            const barRect = bar.getBoundingClientRect();
+                            const labelRect = label.getBoundingClientRect();
+                            gliderLeft.value = labelRect.left - barRect.left;
+                            gliderWidth.value = labelRect.width;
+                        });
+                    };
+
+                    const toggleDarkMode = () => {
+                        isDark.value = !isDark.value;
+                        document.documentElement.classList.toggle('dark', isDark.value);
+                        localStorage.setItem('af_dark', isDark.value);
+                    };
+
+                    const setTheme = (color) => {
+                        themeColor.value = color;
+                        localStorage.setItem('af_theme_color', color);
+                    };
+
+                    const showToast = (msg, type = 'success') => {
+                        toast.message = msg; toast.type = type; toast.show = true;
+                        setTimeout(() => toast.show = false, 3000);
+                    };
+                    
+                    const downloadApp = () => {
+                        const html = document.documentElement.outerHTML;
+                        const blob = new Blob([html], { type: 'text/html' });
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url; a.download = 'ActivityFlow_Offline.html';
+                        document.body.appendChild(a); a.click();
+                        document.body.removeChild(a);
+                        showToast('App Downloaded!');
+                    };
+
+                    onMounted(() => {
+                        if (localStorage.getItem('af_dark') === 'true') { isDark.value = true; document.documentElement.classList.add('dark'); }
+                        const savedColor = localStorage.getItem('af_theme_color');
+                        if (savedColor) themeColor.value = savedColor;
+
+                        // Load analytics visibility flags
+                        let anaFlags = {};
+                        try { anaFlags = JSON.parse(localStorage.getItem('af_ana_flags') || '{}'); } catch(e) {}
+
+                        // Apply flags to built-in categories
+                        categories.value.forEach(c => {
+                            if (anaFlags.hasOwnProperty(c.name)) c.inAnalytics = anaFlags[c.name];
+                        });
+
+                        // Load saved custom categories
+                        const savedCats = localStorage.getItem('af_custom_cats');
+                        if (savedCats) {
+                            try {
+                                const parsed = JSON.parse(savedCats);
+                                parsed.forEach(c => {
+                                    if (!categories.value.find(e => e.name === c.name)) {
+                                        const swatch = colorPalette.find(p => p.key === c.colorKey) || colorPalette[0];
+                                        const inAna = anaFlags.hasOwnProperty(c.name) ? anaFlags[c.name] : true;
+                                        categories.value.push({ name: c.name, builtin: false, colorKey: swatch.key, gradient: swatch.gradient, inAnalytics: inAna });
+                                    }
+                                });
+                            } catch(e) {}
+                        }
+
+                        document.addEventListener('click', (e) => {
+                            if (!e.target.closest('.settings-open') && !e.target.closest('[data-settings-btn]')) {
+                                settingsOpen.value = false;
+                            }
+                        });
+                        setTimeout(updateGlider, 150);
+                        window.addEventListener('resize', updateGlider);
+                    });
+
+                    return { 
+                        currentView, isModalOpen, isCatModalOpen, isDark, themeColor, filter,
+                        categories, analyticsCategories, toast, settingsOpen,
+                        gliderLeft, gliderWidth, updateGlider,
+                        colorPalette, newCatName, newCatColor, catError,
+                        addCategory, deleteCategory, toggleCatAnalytics,
+                        getCatGradient, getSwatchGradient, getCatByName,
+                        toggleDarkMode, setTheme, showToast, downloadApp, exportData, importData,
+                        getCategoryColor, getCategoryGradient,
+                        openModal:()=>{}, 
+                        closeModal:()=>isModalOpen.value=false 
+                    };
+                };
+
+                // --- DATA ---
+                const useData = (ui) => {
+                    const activities = ref([]);
+                    const editingId = ref(null);
+                    const form = reactive({ data: { name: '', category: 'work', startTime: '09:00', endTime: '10:00', date: '' }, isRecurring: false });
+
+                    onMounted(() => {
+                        const saved = localStorage.getItem('af_data');
+                        if (saved) activities.value = JSON.parse(saved);
+                    });
+                    
+                    watch(activities, (v) => localStorage.setItem('af_data', JSON.stringify(v)), { deep: true });
+
+                    const saveActivity = () => {
+                        const [h1, m1] = form.data.startTime.split(':').map(Number);
+                        const [h2, m2] = form.data.endTime.split(':').map(Number);
+                        let duration = (h2 + m2/60) - (h1 + m1/60);
+                        if (duration < 0) duration += 24;
+                        duration = parseFloat(duration.toFixed(2));
+
+                        if (duration <= 0) return ui.showToast('Invalid Time', 'error');
+                        const payload = { ...form.data, duration };
+
+                        if (editingId.value) {
+                            const idx = activities.value.findIndex(a => a.id === editingId.value);
+                            if (idx !== -1) activities.value[idx] = { id: editingId.value, ...payload };
+                            ui.showToast('Updated');
+                        } else {
+                            // Save main
+                            activities.value.push({ id: Date.now(), ...payload });
+                            
+                            // Recurring Logic: Clone for next 4 weeks
+                            if (form.isRecurring) {
+                                for(let i=1; i<=4; i++) {
+                                    const nextDate = new Date(payload.date);
+                                    nextDate.setDate(nextDate.getDate() + (i * 7));
+                                    activities.value.push({ 
+                                        id: Date.now() + i, 
+                                        ...payload, 
+                                        date: nextDate.toISOString().split('T')[0] 
+                                    });
+                                }
+                                ui.showToast('Logged + 4 Recurring saved');
+                            } else {
+                                ui.showToast('Logged');
+                            }
+                        }
+                        ui.closeModal();
+                    };
+
+                    const deleteActivity = (id) => {
+                        if(confirm('Delete?')) activities.value = activities.value.filter(a => a.id !== id);
+                    };
+
+                    return { activities, form, editingId, saveActivity, deleteActivity };
+                };
+
+                // --- TIMER (POMODORO) ---
+                // --- TIMER (POMODORO) - FIXED VERSION ---
+				const useTimer = (ui, openModal, activities) => {  // Add activities parameter
+					const isVisible = ref(false);
+					const isRunning = ref(false);
+					const startTime = ref(null);
+					const elapsed = ref(0);
+					const taskName = ref('');
+					const selectedCategory = ref('work'); // For task 2
+					let interval = null;
+					let animationFrame = null;
+
+					const formattedTime = computed(() => {
+						const totalSeconds = Math.floor(elapsed.value / 1000);
+						const m = Math.floor(totalSeconds / 60).toString().padStart(2, '0');
+						const s = (totalSeconds % 60).toString().padStart(2, '0');
+						return `${m}:${s}`;
+					});
+
+					// Visual progress for a 25m target
+					const progress = computed(() => Math.min((elapsed.value / (25 * 60 * 1000)) * 100, 100));
+
+					const updateElapsed = () => {
+						if (startTime.value) {
+							elapsed.value = Date.now() - startTime.value;
+							animationFrame = requestAnimationFrame(updateElapsed);
+						}
+					};
+
+					const toggle = () => {
+						if (isRunning.value) {
+							// Pause
+							if (animationFrame) {
+								cancelAnimationFrame(animationFrame);
+								animationFrame = null;
+							}
+							isRunning.value = false;
+						} else {
+							// Start or resume
+							if (elapsed.value === 0) {
+								startTime.value = Date.now();
+							} else {
+								// Resume from paused state
+								startTime.value = Date.now() - elapsed.value;
+							}
+							isRunning.value = true;
+							animationFrame = requestAnimationFrame(updateElapsed);
+							
+							if (!isVisible.value) isVisible.value = true;
+						}
+					};
+
+					const stop = () => {
+						if (animationFrame) {
+							cancelAnimationFrame(animationFrame);
+							animationFrame = null;
+						}
+						isRunning.value = false;
+						
+						if (elapsed.value > 60000) { // Only if > 1 min
+							const now = new Date();
+							const endStr = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+							const startObj = new Date(now.getTime() - elapsed.value);
+							const startStr = `${startObj.getHours().toString().padStart(2, '0')}:${startObj.getMinutes().toString().padStart(2, '0')}`;
+							
+							// Calculate duration in hours with proper formatting
+							const durationHours = parseFloat((elapsed.value / (1000 * 60 * 60)).toFixed(2));
+							
+							// Format start and end times for display
+							const formattedStart = startStr;
+							const formattedEnd = endStr;
+							
+							// Create activity with ALL data properly captured
+							// Create activity with ALL data properly captured
+								const newActivity = {
+									id: Date.now(),
+									name: taskName.value.trim() || `${selectedCategory.value.charAt(0).toUpperCase() + selectedCategory.value.slice(1)} Session`,
+									category: selectedCategory.value,
+									startTime: formattedStart,
+									endTime: formattedEnd,
+									date: now.toISOString().split('T')[0],
+									duration: durationHours
+								};
+
+								// Add to activities
+								activities.value.push(newActivity);
+
+								// Show detailed success toast with all info
+								const categoryName = selectedCategory.value.charAt(0).toUpperCase() + selectedCategory.value.slice(1);
+								ui.showToast(`Logged: ${newActivity.name} | ${categoryName} | ${formattedStart}-${formattedEnd} | ${durationHours}h`);
+						}
+						
+						elapsed.value = 0;
+						taskName.value = '';
+						isVisible.value = false;
+					};
+
+					// Cleanup on unmount
+					onMounted(() => {
+						// No cleanup needed here
+					});
+
+					return { 
+						isVisible, 
+						isRunning, 
+						taskName, 
+						selectedCategory, // Add category to return
+						formattedTime, 
+						progress, 
+						toggle, 
+						stop, 
+						toggleVisibility: () => isVisible.value = !isVisible.value 
+					};
+				};
+
+                // --- BOARD & TIMELINE ---
+                const useBoard = (activities, ui) => {
+                    const weekOffset = ref(0); 
+                    const weekDays = computed(() => {
+                        const curr = new Date();
+                        curr.setDate(curr.getDate() + (weekOffset.value * 7));
+                        const first = curr.getDate() - curr.getDay() + 1;
+                        const monday = new Date(curr.setDate(first));
+                        if (new Date().getDay() === 0 && weekOffset.value === 0) monday.setDate(monday.getDate() - 7); 
+
+                        const days = [];
+                        for (let i = 0; i < 7; i++) {
+                            const d = new Date(monday);
+                            d.setDate(monday.getDate() + i);
+                            const dateStr = d.toISOString().split('T')[0];
+                            let dayActs = activities.value.filter(a => a.date === dateStr);
+                            if (ui.filter.value !== 'all') dayActs = dayActs.filter(a => a.category === ui.filter.value);
+                            dayActs.sort((a,b) => a.startTime.localeCompare(b.startTime));
+                            days.push({
+                                dateStr,
+                                dayName: d.toLocaleDateString('en-US', { weekday: 'short' }),
+                                dayNum: d.getDate(),
+                                isToday: dateStr === new Date().toISOString().split('T')[0],
+                                activities: dayActs,
+                                totalHours: dayActs.reduce((sum, a) => sum + a.duration, 0).toFixed(1)
+                            });
+                        }
+                        return days;
+                    });
+                    
+                    const dateRange = computed(() => weekDays.value.length ? `${weekDays.value[0].dayName} ${weekDays.value[0].dayNum} - ${weekDays.value[6].dayName} ${weekDays.value[6].dayNum}` : '');
+
+                    // Week-scoped category count for filter badge (Task 1 fix)
+                    const weekDateSet = computed(() => new Set(weekDays.value.map(d => d.dateStr)));
+                    const weekCatCount = (cat) => activities.value.filter(a => a.category === cat && weekDateSet.value.has(a.date)).length;
+
+                    // Timeline Helpers
+                    const getLeftPos = (timeStr) => {
+                        const [h, m] = timeStr.split(':').map(Number);
+                        return ((h + m/60) / 24) * 100 + '%';
+                    };
+                    const getWidth = (duration) => (duration / 24) * 100 + '%';
+
+                    return { weekDays, dateRange, weekCatCount, timeline: { getLeftPos, getWidth }, nextWeek: () => weekOffset.value++, prevWeek: () => weekOffset.value-- };
+                };
+
+                // --- GAMIFICATION & ANALYTICS ---
+                const useAnalytics = (activities, currentView, ui, board) => {
+
+                    // Helper: activities filtered to only analytics-visible categories
+                    const visibleActs = computed(() =>
+                        activities.value.filter(a => {
+                            const cat = ui.getCatByName(a.category);
+                            return cat.inAnalytics !== false;
+                        })
+                    );
+
+                    // Gamification Logic (uses ALL activities, not filtered)
+                    const streak = computed(() => {
+                        if (!activities.value.length) return 0;
+                        const sorted = [...new Set(activities.value.map(a => a.date))].sort().reverse();
+                        let lastEntry = new Date(sorted[0]);
+                        let diffDays = Math.floor((new Date() - lastEntry) / (1000 * 60 * 60 * 24));
+                        if (diffDays > 1) return 0;
+                        let count = 0;
+                        for (let i = 0; i < sorted.length; i++) {
+                            if (i > 0) {
+                                let prev = new Date(sorted[i-1]);
+                                let gap = (prev - new Date(sorted[i])) / (1000 * 3600 * 24);
+                                if (gap <= 1.1) count++; else break;
+                            } else count = 1;
+                        }
+                        return count;
+                    });
+
+                    const badges = computed(() => [
+                        { id: 1, name: 'First Step',  icon: 'fas fa-shoe-prints', desc: 'Logged first activity',      unlocked: activities.value.length > 0 },
+                        { id: 2, name: 'On Fire',      icon: 'fas fa-fire',        desc: '3 Day Streak',               unlocked: streak.value >= 3 },
+                        { id: 3, name: 'Workaholic',   icon: 'fas fa-briefcase',   desc: 'Logged 40+ hours total',     unlocked: activities.value.reduce((a,b)=>a+b.duration,0) > 40 },
+                        { id: 4, name: 'Early Bird',   icon: 'fas fa-sun',         desc: 'Activity before 7AM',        unlocked: activities.value.some(a => parseInt(a.startTime) < 7) }
+                    ]);
+
+                    // Stats — respect analytics visibility filter
+                    const totalHours = computed(() =>
+                        visibleActs.value.reduce((acc, c) => acc + c.duration, 0).toFixed(1)
+                    );
+                    const productivityScore = computed(() => {
+                        const total = parseFloat(totalHours.value);
+                        if (total === 0) return 0;
+                        const good = visibleActs.value
+                            .filter(a => ['work','study','health'].includes(a.category))
+                            .reduce((acc,c) => acc + c.duration, 0);
+                        return Math.round((good / total) * 100);
+                    });
+                    const topCategory = computed(() => {
+                        const c = {};
+                        visibleActs.value.forEach(a => c[a.category] = (c[a.category]||0) + a.duration);
+                        return Object.keys(c).reduce((a,b) => c[a]>c[b] ? a : b, '');
+                    });
+
+                    // ── Helper: extract first solid hex from gradient string ──
+                    const gradientToHex = (gradient) => {
+                        const m = gradient.match(/#[0-9a-fA-F]{6}/);
+                        return m ? m[0] : '#6366f1';
+                    };
+
+                    // ── Reactive legend & empty state for line chart ──
+                    const weeklyLineLegend = computed(() => {
+                        const days = board.weekDays.value;
+                        const catSet = new Set();
+                        days.forEach(day => {
+                            visibleActs.value
+                                .filter(a => a.date === day.dateStr)
+                                .forEach(a => catSet.add(a.category));
+                        });
+                        return [...catSet].map(name => ({
+                            name,
+                            color: gradientToHex(ui.getCatByName(name).gradient)
+                        }));
+                    });
+                    const weeklyLineEmpty = computed(() => weeklyLineLegend.value.length === 0);
+
+                    // ── Chart instances ──
+                    let charts = {};
+
+                    watch([currentView, activities, ui.isDark, ui.categories, board.weekDays], () => {
+                        if (currentView.value !== 'analytics') return;
+                        nextTick(() => {
+                            const tickColor  = ui.isDark.value ? '#94a3b8' : '#64748b';
+                            const gridColor  = ui.isDark.value ? '#1e293b' : '#f1f5f9';
+                            const borderClr  = ui.isDark.value ? '#334155' : '#e2e8f0';
+
+                            // ── Doughnut — filtered ──
+                            if (charts.cat) charts.cat.destroy();
+                            const catData = {};
+                            visibleActs.value.forEach(a =>
+                                catData[a.category] = (catData[a.category]||0) + a.duration
+                            );
+                            const chartColors = Object.keys(catData).map(name => {
+                                const cat = ui.getCatByName(name);
+                                const m = cat.gradient.match(/#[0-9a-fA-F]{3,6}/);
+                                return m ? m[0] : '#6366f1';
+                            });
+                            const ctx1 = document.getElementById('categoryChart');
+                            if (ctx1) charts.cat = new Chart(ctx1, {
+                                type: 'doughnut',
+                                data: {
+                                    labels: Object.keys(catData),
+                                    datasets: [{ data: Object.values(catData), backgroundColor: chartColors, borderWidth: 0 }]
+                                },
+                                options: { maintainAspectRatio: false, plugins: { legend: { position: 'right', labels: { color: tickColor } } } }
+                            });
+
+                            // ── Bar trend — filtered ──
+                            if (charts.trend) charts.trend.destroy();
+                            const dates = {};
+                            for (let i = 6; i >= 0; i--) {
+                                const d = new Date(); d.setDate(d.getDate() - i);
+                                const ds = d.toISOString().split('T')[0];
+                                dates[d.toLocaleDateString('en-US',{weekday:'short'})] =
+                                    visibleActs.value
+                                        .filter(a => a.date === ds)
+                                        .reduce((s,a) => s + a.duration, 0);
+                            }
+                            const ctx2 = document.getElementById('trendChart');
+                            if (ctx2) charts.trend = new Chart(ctx2, {
+                                type: 'bar',
+                                data: {
+                                    labels: Object.keys(dates),
+                                    datasets: [{
+                                        label: 'Hours',
+                                        data: Object.values(dates),
+                                        backgroundColor: ui.isDark.value ? '#818cf8' : '#4f46e5',
+                                        borderRadius: 6
+                                    }]
+                                },
+                                options: {
+                                    maintainAspectRatio: false,
+                                    scales: {
+                                        y: { ticks: { color: tickColor }, grid: { color: ui.isDark.value ? '#334155' : '#e5e7eb' } },
+                                        x: { ticks: { color: tickColor }, grid: { display: false } }
+                                    },
+                                    plugins: { legend: { display: false } }
+                                }
+                            });
+
+                            // ── Weekly Category Line Chart — pure lines, no bars, auto Y ──
+                            if (charts.line) charts.line.destroy();
+                            const ctx3 = document.getElementById('weeklyLineChart');
+                            if (!ctx3) return;
+
+                            const days = board.weekDays.value;
+                            const xLabels = days.map(d => `${d.dayName} ${d.dayNum}`);
+
+                            // Collect only visible categories that appear this week
+                            const weekCatSet = new Set();
+                            days.forEach(day => {
+                                visibleActs.value
+                                    .filter(a => a.date === day.dateStr)
+                                    .forEach(a => weekCatSet.add(a.category));
+                            });
+                            if (weekCatSet.size === 0) return;
+
+                            // Task 2: compute true max across all datasets for Y suggestedMax
+                            let dataMax = 0;
+
+                            const datasets = [...weekCatSet].map(catName => {
+                                const catObj = ui.getCatByName(catName);
+                                const hex    = gradientToHex(catObj.gradient);
+                                const data   = days.map(day =>
+                                    parseFloat(
+                                        visibleActs.value
+                                            .filter(a => a.date === day.dateStr && a.category === catName)
+                                            .reduce((s,a) => s + a.duration, 0)
+                                            .toFixed(2)
+                                    )
+                                );
+                                data.forEach(v => { if (v > dataMax) dataMax = v; });
+                                return {
+                                    label: catName,
+                                    data,
+                                    borderColor: hex,
+                                    backgroundColor: 'transparent',   // no fill — clean lines only
+                                    pointBackgroundColor: hex,
+                                    pointBorderColor: ui.isDark.value ? '#1e293b' : '#ffffff',
+                                    pointBorderWidth: 2,
+                                    pointRadius: 5,
+                                    pointHoverRadius: 7,
+                                    borderWidth: 2.5,
+                                    tension: 0.4,
+                                    fill: false,
+                                };
+                            });
+
+                            // Y max = ceil(dataMax) + 1 padding so top point isn't clipped
+                            const yMax = dataMax > 0 ? Math.ceil(dataMax) + 1 : 5;
+
+                            charts.line = new Chart(ctx3, {
+                                type: 'line',
+                                data: { labels: xLabels, datasets },
+                                options: {
+                                    responsive: true,
+                                    maintainAspectRatio: false,
+                                    interaction: { mode: 'index', intersect: false },
+                                    plugins: {
+                                        legend: { display: false },
+                                        tooltip: {
+                                            backgroundColor: ui.isDark.value ? '#1e293b' : '#0f172a',
+                                            titleColor: '#94a3b8',
+                                            bodyColor: '#f1f5f9',
+                                            padding: 12,
+                                            cornerRadius: 10,
+                                            callbacks: {
+                                                label: (ctx) => {
+                                                    const v = ctx.parsed.y;
+                                                    if (v === 0) return null;
+                                                    const h = Math.floor(v);
+                                                    const m = Math.round((v - h) * 60);
+                                                    return `  ${ctx.dataset.label}: ${h}h${m > 0 ? m+'m' : ''}`;
+                                                },
+                                                title: (items) => items[0]?.label || ''
+                                            }
+                                        }
+                                    },
+                                    scales: {
+                                        x: {
+                                            ticks: { color: tickColor, font: { size: 11, weight: '600' }, maxRotation: 0 },
+                                            grid: { color: borderClr, drawTicks: false },
+                                            border: { color: borderClr }
+                                        },
+                                        y: {
+                                            beginAtZero: true,
+                                            suggestedMax: yMax,   // Task 2: auto-scales to actual data
+                                            ticks: {
+                                                color: tickColor,
+                                                font: { size: 11 },
+                                                stepSize: 1,
+                                                callback: v => Number.isInteger(v) ? v + 'h' : ''
+                                            },
+                                            grid: { color: gridColor },
+                                            border: { color: borderClr, dash: [4, 4] }
+                                        }
+                                    }
+                                }
+                            });
+                        });
+                    });
+
+                    return { totalHours, productivityScore, topCategory, streak, badges, weeklyLineEmpty, weeklyLineLegend };
+                };
+				
+				// Export data function
+				const exportData = () => {
+					const data = localStorage.getItem('af_data');
+					if (!data || data === '[]') {
+						showToast('No data to export', 'error');
+						return;
+					}
+					
+					const date = new Date().toISOString().split('T')[0];
+					const filename = `activityflow-${date}.json`;
+					
+					const blob = new Blob([data], { type: 'application/json' });
+					const url = URL.createObjectURL(blob);
+					const a = document.createElement('a');
+					a.href = url;
+					a.download = filename;
+					document.body.appendChild(a);
+					a.click();
+					document.body.removeChild(a);
+					URL.revokeObjectURL(url);
+					
+					showToast('✓ Data exported successfully!');
+				};
+
+				// Import data function
+				const importData = () => {
+					const input = document.createElement('input');
+					input.type = 'file';
+					input.accept = '.json';
+					
+					input.onchange = (e) => {
+						const file = e.target.files[0];
+						if (!file) return;
+						
+						const reader = new FileReader();
+						reader.onload = (event) => {
+							try {
+								const content = event.target.result;
+								const parsed = JSON.parse(content);
+								
+								// Validate structure - must be an array
+								if (!Array.isArray(parsed)) {
+									showToast('Invalid file format', 'error');
+									return;
+								}
+								
+								// Optional: Validate each activity has required fields
+								const isValid = parsed.every(act => 
+									act.id && act.name && act.category && act.startTime && act.endTime && act.date
+								);
+								
+								if (!isValid && parsed.length > 0) {
+									showToast('Invalid activity data structure', 'error');
+									return;
+								}
+								
+								// Save to localStorage
+								localStorage.setItem('af_data', JSON.stringify(parsed));
+								showToast('✓ Data imported! Reloading...');
+								
+								// Reload page after 1 second
+								setTimeout(() => location.reload(), 1000);
+								
+							} catch (error) {
+								showToast('Failed to parse JSON file', 'error');
+								console.error('Import error:', error);
+							}
+						};
+						
+						reader.readAsText(file);
+					};
+					
+					input.click();
+				};
+
+                // --- SETUP ---
+                const ui = useUI();
+                const auth = useAuth();
+                const dataMgr = useData(ui);
+                const board = useBoard(dataMgr.activities, ui);
+                const analytics = useAnalytics(dataMgr.activities, ui.currentView, ui, board);
+                
+                // Re-position glider whenever filter changes, board view becomes active, or categories change
+                watch([ui.filter, ui.currentView, board.weekDays, ui.categories], () => {
+                    nextTick(() => ui.updateGlider());
+                });
+
+                // Modal Hook
+                ui.openModal = (act = null, prefill = null) => {
+                    dataMgr.editingId.value = act ? act.id : null;
+                    if (act) {
+                        dataMgr.form.data = { ...act };
+                        dataMgr.form.isRecurring = false;
+                    } else {
+                        const today = new Date().toISOString().split('T')[0];
+                        const defaultCat = ui.categories.value[0]?.name || 'work';
+                        dataMgr.form.data = prefill || { name: '', category: defaultCat, startTime: '09:00', endTime: '10:00', date: today };
+                        dataMgr.form.isRecurring = false;
+                    }
+                    ui.isModalOpen.value = true;
+                };
+
+                const timer = useTimer(ui, ui.openModal, dataMgr.activities); // Pass activities
+
+                return { ui, auth, dataMgr, board, analytics, gamification: analytics, form: dataMgr.form, toast: ui.toast, timer, timeline: board.timeline };
+            }
+        }).mount('#app');
+    </script>
+
+    <!-- ══════════════ PWA INSTALL BANNER ══════════════ -->
+    <div id="pwa-banner" role="dialog" aria-label="Install ActivityFlow">
+        <div id="pwa-banner-handle"></div>
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
+            <img src="./icons/icon-192.png" width="52" height="52" alt="ActivityFlow"
+                 style="border-radius:14px;box-shadow:0 2px 12px rgba(79,70,229,.25);flex-shrink:0;">
+            <div>
+                <div style="font-size:17px;font-weight:800;color:#0f172a;" class="dark-name">ActivityFlow</div>
+                <div style="font-size:12px;color:#64748b;margin-top:2px;">learnforfun08-dev.github.io</div>
+            </div>
+            <button onclick="PWA.closeBanner()"
+                    style="margin-left:auto;background:none;border:none;font-size:22px;color:#94a3b8;cursor:pointer;padding:4px;line-height:1;">&#x2715;</button>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px;">
+            <span class="chip">&#x26A1; Instant open</span>
+            <span class="chip">&#x1F4F6; Works offline</span>
+            <span class="chip">&#x1F6AB; No browser bar</span>
+        </div>
+        <!-- Android / Desktop: native install -->
+        <div id="pwa-android-section" style="display:none;">
+            <button id="pwa-install-btn" onclick="PWA.triggerNativeInstall()">
+                &#x2B07; Install App &mdash; It's Free
+            </button>
+        </div>
+        <!-- iOS: step-by-step -->
+        <div id="pwa-ios-section" style="display:none;">
+            <div style="font-size:13px;font-weight:700;color:#475569;margin-bottom:6px;">Add to Home Screen (iOS)</div>
+            <div class="ios-step"><div class="step-num">1</div><span>Tap the <strong>Share</strong> button &#x1F4E4; in Safari</span></div>
+            <div class="ios-step"><div class="step-num">2</div><span>Scroll and tap <strong>"Add to Home Screen"</strong></span></div>
+            <div class="ios-step"><div class="step-num">3</div><span>Tap <strong>"Add"</strong> &mdash; done! &#x1F389;</span></div>
+        </div>
+    </div>
+
+    <!-- Floating Install FAB -->
+    <button id="pwa-fab" class="hidden-fab" onclick="PWA.openBanner()" title="Install App" aria-label="Install ActivityFlow">
+        <i class="fas fa-download"></i>
+    </button>
+
+    <!-- Success toast -->
+    <div id="pwa-success-toast">&#x1F389; ActivityFlow installed!</div>
+
+    <!-- ══════════════ PWA SERVICE WORKER + INSTALL LOGIC ══════════════ -->
+    <script>
+    /* Service Worker */
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('./sw.js')
+                .then(r => console.log('[PWA] SW registered, scope:', r.scope))
+                .catch(e => console.warn('[PWA] SW failed:', e));
+        });
+    }
+
+    /* Install Controller */
+    const PWA = (() => {
+        let deferredPrompt = null;
+        let bannerShown    = false;
+
+        const $ = id => document.getElementById(id);
+        const isIOS        = /iphone|ipad|ipod/i.test(navigator.userAgent);
+        const isStandalone = window.matchMedia('(display-mode: standalone)').matches
+                          || navigator.standalone === true;
+
+        if (isStandalone) return { openBanner(){}, closeBanner(){}, triggerNativeInstall(){} };
+
+        function configureSections() {
+            $('pwa-android-section').style.display = deferredPrompt ? 'block' : 'none';
+            $('pwa-ios-section').style.display     = (!deferredPrompt && isIOS) ? 'block' : 'none';
+        }
+
+        window.addEventListener('beforeinstallprompt', e => {
+            e.preventDefault();
+            deferredPrompt = e;
+            showUI();
+        });
+
+        if (isIOS) showUI();
+
+        function showUI() {
+            const hb = $('pwa-header-btn');
+            if (hb) hb.style.display = 'flex';
+            if (!bannerShown) { setTimeout(openBanner, 2000); bannerShown = true; }
+        }
+
+        function openBanner() {
+            configureSections();
+            $('pwa-banner').classList.add('show');
+            $('pwa-fab').classList.add('hidden-fab');
+        }
+
+        function closeBanner() {
+            $('pwa-banner').classList.remove('show');
+            setTimeout(() => $('pwa-fab').classList.remove('hidden-fab'), 400);
+        }
+
+        async function triggerNativeInstall() {
+            if (!deferredPrompt) return;
+            deferredPrompt.prompt();
+            const { outcome } = await deferredPrompt.userChoice;
+            deferredPrompt = null;
+            if (outcome === 'accepted') onInstalled(); else closeBanner();
+        }
+
+        function onInstalled() {
+            $('pwa-banner').classList.remove('show');
+            $('pwa-fab').classList.add('hidden-fab');
+            const hb = $('pwa-header-btn'); if (hb) hb.style.display = 'none';
+            const t = $('pwa-success-toast');
+            t.classList.add('show');
+            setTimeout(() => t.classList.remove('show'), 3500);
+        }
+
+        window.addEventListener('appinstalled', onInstalled);
+
+        /* Swipe-down to dismiss */
+        let startY = 0;
+        $('pwa-banner').addEventListener('touchstart', e => { startY = e.touches[0].clientY; }, { passive: true });
+        $('pwa-banner').addEventListener('touchmove',  e => { if (e.touches[0].clientY - startY > 60) closeBanner(); }, { passive: true });
+
+        return { openBanner, closeBanner, triggerNativeInstall };
+    })();
+    </script>
+
+</body>
+</html>
